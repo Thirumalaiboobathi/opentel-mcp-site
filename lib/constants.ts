@@ -1,7 +1,7 @@
 export const SITE = {
   name: "opentel-mcp",
-  domain: "opentel-mcp.dev",
-  url: "https://opentel-mcp.dev",
+  domain: "opentel-mcp-site.pages.dev",
+  url: "https://opentel-mcp-site.pages.dev",
   tagline: "OpenTelemetry for MCP servers that actually catches silent failures.",
   description:
     "opentel-mcp is a Node.js OpenTelemetry instrumentation library for Model Context Protocol servers. It uniquely detects silent failures — CallToolResult.isError=true inside successful JSON-RPC responses — and marks OpenTelemetry spans as ERROR.",

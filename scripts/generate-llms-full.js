@@ -13,7 +13,24 @@ import { fileURLToPath } from "node:url";
 import path from "node:path";
 
 const ROOT = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
-const SITE_URL = "https://opentel-mcp.dev";
+
+// Read SITE.url out of lib/constants.ts by regex rather than hardcoding
+// it a second time here — this file is a plain Node script outside the
+// TS/webpack pipeline, so it can't `import` a .ts file directly, but a
+// second hardcoded copy of the domain is exactly the kind of drift that
+// caused a stale opentel-mcp.dev reference to ship once already.
+function readSiteUrl() {
+  const constants = readFileSync(path.join(ROOT, "lib/constants.ts"), "utf8");
+  const match = constants.match(/url:\s*"([^"]+)"/);
+  if (!match) {
+    throw new Error(
+      "generate-llms-full: couldn't find SITE.url in lib/constants.ts"
+    );
+  }
+  return match[1];
+}
+
+const SITE_URL = readSiteUrl();
 
 function readMdxBody(relPath) {
   const raw = readFileSync(path.join(ROOT, relPath), "utf8");

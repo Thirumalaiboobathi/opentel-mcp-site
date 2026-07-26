@@ -1,10 +1,9 @@
-# opentel-mcp — full-text scaffold
+# opentel-mcp — full documentation text
 
-This file will contain the complete text of every docs page concatenated
-as clean markdown, per the llms-full.txt convention. It is currently a
-scaffold — placeholder doc content is still in place (see
-CLAUDE.md / DECISIONS.md, "Round 1" — real doc content lands in Round 2).
-
-Once real content is written, this file should be regenerated from the
-`docs` Velite collection (concatenating each entry's compiled markdown in
-DOCS_NAV order) rather than maintained by hand.
+This file is a build-time fallback only. The real, current
+llms-full.txt is generated fresh on every `pnpm build` by
+scripts/generate-llms-full.js, which overwrites this file's copy in
+out/ with the full text of all 12 site pages. If you're reading this
+version instead, it means public/ is being served directly without a
+build having run — see out/llms-full.txt (or https://opentel-mcp-site.pages.dev/llms-full.txt
+once deployed) for the real content.

@@ -9,44 +9,44 @@
 **License:** MIT
 **npm:** https://www.npmjs.com/package/opentel-mcp
 **GitHub:** https://github.com/Thirumalaiboobathi/opentel-mcp
-**Site:** https://opentel-mcp.dev
+**Site:** https://opentel-mcp-site.pages.dev
 
 ## Concepts
 
-- [Silent Failures](https://opentel-mcp.dev/docs/silent-failures):
+- [Silent Failures](https://opentel-mcp-site.pages.dev/docs/silent-failures):
   Why MCP tools can fail while the JSON-RPC envelope reports success,
   and how opentel-mcp catches CallToolResult.isError=true.
-- [Deep Failure Fingerprinting](https://opentel-mcp.dev/docs/deep-fingerprinting):
+- [Deep Failure Fingerprinting](https://opentel-mcp-site.pages.dev/docs/deep-fingerprinting):
   SHA-256-16 fingerprint that groups identical failures across noisy
   error messages. Cardinality-safe by construction.
 
 ## Reference
 
-- [API Reference](https://opentel-mcp.dev/docs/api-reference): Real
+- [API Reference](https://opentel-mcp-site.pages.dev/docs/api-reference): Real
   signatures for instrumentMcpServer, computeFingerprint,
   toSpanAttributes, ATTRIBUTE_KEYS, METRIC_SAFE_ATTRIBUTES,
   DEFAULT_CLASSIFIERS, and all exported types.
-- [Metrics](https://opentel-mcp.dev/docs/metrics): The four mcp.tool.*
+- [Metrics](https://opentel-mcp-site.pages.dev/docs/metrics): The four mcp.tool.*
   OpenTelemetry metrics (calls, errors, silent_failures, duration)
   with SigNoz and Prometheus query examples.
 
 ## Guides
 
-- [Getting Started](https://opentel-mcp.dev/docs/getting-started):
+- [Getting Started](https://opentel-mcp-site.pages.dev/docs/getting-started):
   Install, initialize, first trace in under 60 seconds.
-- [Migration](https://opentel-mcp.dev/docs/migration): Moving from
+- [Migration](https://opentel-mcp-site.pages.dev/docs/migration): Moving from
   raw @opentelemetry/api instrumentation to opentel-mcp.
 
 ## Optional
 
-- [FAQ](https://opentel-mcp.dev/faq): 20 developer questions with
+- [FAQ](https://opentel-mcp-site.pages.dev/faq): 20 developer questions with
   answers. Covers SigNoz, Jaeger, Honeycomb, Grafana Tempo,
   Prometheus, cardinality, Node.js versions.
-- [Comparison](https://opentel-mcp.dev/comparison): opentel-mcp vs
+- [Comparison](https://opentel-mcp-site.pages.dev/comparison): opentel-mcp vs
   raw @opentelemetry/api vs fastmcp built-in instrumentation.
-- [Changelog](https://opentel-mcp.dev/changelog): v0.1.0 through
+- [Changelog](https://opentel-mcp-site.pages.dev/changelog): v0.1.0 through
   v0.4.0 with commit-linked history.
-- [About](https://opentel-mcp.dev/about): The author and the origin
+- [About](https://opentel-mcp-site.pages.dev/about): The author and the origin
   of the project.
-- [Blog](https://opentel-mcp.dev/blog): Deep dive on Deep Failure
+- [Blog](https://opentel-mcp-site.pages.dev/blog): Deep dive on Deep Failure
   Fingerprinting's 8-phase build.

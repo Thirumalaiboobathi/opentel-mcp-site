@@ -575,3 +575,28 @@ repo's actual layout, not a workaround. Verified locally with both
 both exit 0 same as before the fix, confirming this only affects
 workspace resolution strictness, not anything else about the install or
 build.
+
+### 2026-07-26: Deferred opentel-mcp.dev custom domain purchase. Launching on opentel-mcp-site.pages.dev.
+Cost/benefit for unproven project favors saving the ~₹900/yr until
+traction justifies it. Migration to custom domain later is a 15-min
+task: update SITE.url, push, add custom domain in Pages, set up 301
+redirect from pages.dev.
+
+Every canonical URL, JSON-LD `url` field, and the sitemap already
+derived from `SITE.url`/`SITE.domain` in `lib/constants.ts`, so this was
+a one-constant change plus a grep for anywhere the domain had been
+hardcoded a second time instead of referencing the constant. Found two
+real instances: `public/llms.txt` (hand-authored, not generated —
+12 literal URLs) and `scripts/generate-llms-full.js` itself, which had
+`SITE_URL` as a second hardcoded literal rather than reading it from
+`lib/constants.ts`. Fixed the second one properly rather than just
+swapping the string: the script now extracts `SITE.url` from
+`lib/constants.ts` by regex at runtime (it's a plain Node script outside
+the TS/webpack pipeline, so it can't `import` a `.ts` file directly),
+so a future domain change only needs the one constant updated, not a
+second hardcoded copy tracked down again. Also noticed and fixed
+`public/llms-full.txt` still carrying stale Round 1/2 scaffold text
+("real doc content lands in Round 2") — unrelated to the domain change,
+but found while verifying this one, and worth fixing since it's
+misleading, low-risk to touch, and only ever served as a fallback
+if `public/` is served without a build ever having run.
