@@ -394,3 +394,72 @@ This means FAQ answers can't use the custom `Callout`/`CodeBlock`
 components — acceptable for one-line factual answers, which is all this
 collection's schema supports (no code-block-shaped questions in the set
 written).
+
+## Round 5 (Phase 5 content — Batch C)
+
+### `mcp-tracer` confirmed not to exist — checked, not just "unverified"
+Earlier phases (landing page, then the flagship page's comparison
+context) treated `mcp-tracer` as "unverified" — a real library whose
+feature set just hadn't been checked. This round actually checked:
+`https://registry.npmjs.org/mcp-tracer` returns 404, and a GitHub repo
+search for `mcp-tracer` returns 53 results, none of which are an MCP
+observability/tracing library (mostly unrelated Cisco Packet Tracer
+integrations and similarly-named-but-unrelated projects). `/comparison`
+states this plainly and excludes it from the comparison table entirely,
+rather than continuing to represent a nonexistent project as an
+"unverified" competitor. The landing page's `ComparisonTable.tsx` still
+has an `mcp-tracer` column with the old "unverified" framing — not
+edited in this round (out of scope), but worth a follow-up pass since
+"checked and found nothing" is a stronger, more useful statement than
+"unverified."
+
+### `/comparison` and `/changelog` treat fastmcp as confirmed-facts-only, not a feature comparison
+Per the user's explicit anti-fabrication rule for competitor claims
+("fastmcp: state confirmed facts... do NOT claim capabilities you
+haven't verified"), and consistent with the FAQ fix in Round 4,
+`/comparison` doesn't attempt a feature-by-feature comparison against
+fastmcp at all — it states the two confirmed facts (fastmcp is Python;
+the author reported/fixed `PrefectHQ/fastmcp#4549`) and explains why a
+capability comparison across language runtimes isn't meaningful, rather
+than forcing fastmcp into the same table as `@opentelemetry/api`.
+
+### `/changelog` dates and links verified against real git history, not invented
+Fetched the actual `CHANGELOG.md` (covers v0.1.0–v0.3.0 only — no
+v0.4.0 entry exists there), the repo's git tags (only `v0.4.0` and
+`v0.2.0` are actually tagged; `v0.1.0` and `v0.3.0` have no tag), and
+targeted commit history (`?path=package.json`, plus a commit search for
+"fingerprint") to get real dates for all four versions. v0.4.0's date is
+the git tag's target commit date (2026-07-24) — the actual first commit
+introducing the fingerprinting feature itself wasn't independently
+findable via commit search (likely squashed/curated before the repo's
+public push, consistent with the eight-phase Claude Code build the user
+described), so the tag date is the most accurate real anchor available,
+not a guess. Each version's changelog entry links to its real tag (`/tree/vX.Y.Z`)
+where one exists, or its specific verified commit SHA (`/commit/<sha>`)
+where it doesn't — checked this explicitly after confirming a
+`/releases/tag/vX.Y.Z` link would 404 (the repo has git tags but no
+published GitHub Releases).
+
+### `/about` placeholders follow the existing convention; AWS Builder Centre gets an explicit VERIFY
+`AUTHOR.linkedin`/`AUTHOR.twitter` were already established placeholders
+(`"LINKEDIN_URL"`/`"TWITTER_URL"`) from Phase 1. Added
+`AUTHOR.awsBuilderCentre = "AWS_BUILDER_CENTRE_URL"` following the same
+pattern, and extended `buildPersonSchema()`'s `sameAs` array to include
+it (still filtered out of the actual JSON-LD output by the existing
+`endsWith("_URL")` check until a real URL replaces it). Per the user's
+explicit instruction, this one also gets an inline `{/* VERIFY */}`
+comment in the page source — not just a bare placeholder — since the
+instruction was specifically "ask the user if unknown," not "use a
+placeholder and move on" like the other two.
+
+### Blog post's "how this was built" section describes methodology, not fabricated phase names
+The user said to "retell the 8-phase build using Claude Code with narrow
+prompts" for opentel-mcp's own v0.4.0 development (a fact about the
+user's own process, not a technical claim requiring independent source
+verification — the user is the primary source for their own
+methodology). Nothing in the fetched source names specific phases, so
+the post describes the real, confirmed *components* of that work
+(classifiers, hash pipeline, span/metric wiring, tests) and the general
+narrow-prompt/incremental-review discipline, without inventing specific
+fake "Phase 1: X, Phase 2: Y" labels or dates that aren't backed by
+anything.

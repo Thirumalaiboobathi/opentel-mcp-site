@@ -80,6 +80,23 @@ One bullet per page, updated after each commit.
   (20-item `mainEntity` verified in build output). Cross-checking
   against the Batch A pages surfaced and fixed two real inaccuracies
   inherited from the Phase 1 FAQ stub — see DECISIONS.md.
+- `/comparison` — ~835 words (TSX, rough count), 0 `VERIFY` comments.
+  Confirmed via direct npm/GitHub search that no library named
+  "mcp-tracer" exists — excluded from the table entirely instead of
+  fabricated.
+- `/changelog` — ~723 words (TSX, rough count), 0 `VERIFY` comments.
+  v0.1.0–v0.4.0 sourced from real `CHANGELOG.md`/commits/tags; includes
+  the v0.4.0 typedef-gap callout per user instruction.
+- `/about` — ~249 words (TSX, rough count), 1 inline `VERIFY` (AWS
+  Builder Centre URL, per explicit instruction to ask rather than
+  guess). `Person` JSON-LD confirmed in build output.
+- `/blog` seed post — ~821 words, 0 `VERIFY` comments. `BlogPosting`
+  JSON-LD confirmed. Also shipped `/blog` index and `/blog/[slug]`
+  template, neither of which existed before this page.
+
+Batch C complete — all 11 remaining Phase 5 pages shipped. See STOP 2
+summary (delivered to the user) for the consolidated route count, word
+count, VERIFY list, and placeholder list.
 
 ## Lessons
 
