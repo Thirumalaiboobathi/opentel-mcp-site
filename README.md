@@ -57,15 +57,59 @@ not inline in content, so copy stays consistent across the site.
 This site builds to a fully static `out/` directory (`output: 'export'` in
 `next.config.mjs`) — no server runtime required.
 
-1. Connect the GitHub repo in the Cloudflare Pages dashboard.
-2. Build command: `pnpm build`
-3. Build output directory: `out`
-4. Node version: `22` (set via `NODE_VERSION` env var if Cloudflare doesn't
-   auto-detect it)
-5. No environment variables are required for the build itself.
+### Prerequisites
+
+- A Cloudflare account.
+- This repo pushed to GitHub, with a Cloudflare Pages project connected
+  to it (Cloudflare dashboard → **Workers & Pages** → **Create** →
+  **Pages** → **Connect to Git**).
+
+### Build settings
+
+| Setting | Value |
+|---|---|
+| Framework preset | **Next.js (Static HTML Export)** |
+| Build command | `pnpm build` |
+| Build output directory | `out` |
+| Node version | `22` (set `NODE_VERSION=22` in the project's environment variables if Cloudflare doesn't auto-detect it from no `.nvmrc`/`engines` field) |
+| Environment variables | None required for the build itself. |
 
 Because everything is statically exported, there's no server-side
 rendering to configure — Cloudflare just serves the prebuilt HTML/CSS/JS.
+Every push to the connected branch (`main` by default) triggers a new
+build and deploy automatically; Cloudflare also builds a preview
+deployment for every other branch and pull request.
+
+### Custom domain
+
+1. In the Pages project, go to **Custom domains** → **Set up a custom
+   domain**.
+2. Enter the domain (e.g. `opentel-mcp.dev`) and follow Cloudflare's
+   prompts. If the domain's DNS is already on Cloudflare, this is a
+   one-click "Activate domain" — Cloudflare adds the CNAME/DNS record
+   for you. If it's registered elsewhere, either transfer DNS to
+   Cloudflare first or add the CNAME record Cloudflare shows you at your
+   current registrar.
+3. Cloudflare provisions a free TLS certificate automatically; this can
+   take a few minutes.
+4. Once live, update `SITE.url`/`SITE.domain` in `lib/constants.ts` if
+   the deployed domain differs from `https://opentel-mcp.dev` — every
+   canonical URL, JSON-LD `url` field, and the sitemap are derived from
+   that constant, so nothing else needs to change.
+
+### Regenerating `llms-full.txt` after a content change
+
+`public/llms-full.txt` is not the file actually served — `pnpm build`
+runs `scripts/generate-llms-full.mjs` as its final step, which reads the
+freshly built `out/**/index.html` (and the raw MDX source for docs/blog)
+and overwrites `out/llms-full.txt` directly. This happens automatically
+on every build, including Cloudflare's, so there's nothing to remember
+to regenerate manually — editing any page under `content/docs/`,
+`content/blog/`, `content/faq/faq.mdx`, or the `comparison`/`changelog`/
+`about` pages and running `pnpm build` (or pushing to trigger a
+Cloudflare build) keeps it in sync automatically. `public/llms-full.txt`
+itself only matters as a fallback if someone serves `public/` without
+running a build at all.
 
 ## Tech stack
 

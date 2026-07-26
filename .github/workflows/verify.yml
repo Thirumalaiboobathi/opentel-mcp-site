@@ -1,0 +1,55 @@
+name: Verify
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.30.1
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Type-check
+        run: pnpm tsc --noEmit
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Build
+        run: pnpm build
+
+      - name: Verify homepage exists
+        run: test -f out/index.html
+
+      - name: Verify docs route count
+        # Guards against Velite silently dropping a content file from a
+        # collection instead of failing the build — this actually
+        # happened during development (see DECISIONS.md, "Round 3").
+        # `pnpm build` exiting 0 alone doesn't prove every content file
+        # compiled; this checks the real output.
+        run: |
+          count=$(ls out/docs/*/index.html | wc -l)
+          expected=6
+          if [ "$count" -ne "$expected" ]; then
+            echo "::error::Expected $expected docs routes in out/docs/, found $count. Velite may have silently dropped a content file — check the build log above for a [VELITE] issues block."
+            exit 1
+          fi
+          echo "Docs route count OK: $count"
+
+      - name: Verify llms-full.txt was generated
+        run: test -f out/llms-full.txt
