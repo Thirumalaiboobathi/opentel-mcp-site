@@ -1,0 +1,132 @@
+---
+slug: "introducing-deep-failure-fingerprinting"
+title: "Introducing Deep Failure Fingerprinting in opentel-mcp v0.4.0"
+description: "How and why opentel-mcp v0.4.0 groups identical MCP tool failures under one stable, cardinality-safe fingerprint — and how it was built."
+datePublished: "2026-07-24"
+dateModified: "2026-07-24"
+author: "Thirumalaiboobathi B"
+tags: ["opentel-mcp", "OpenTelemetry", "MCP", "observability"]
+---
+
+opentel-mcp v0.4.0 ships Deep Failure Fingerprinting: every thrown error
+and every [silent failure](/docs/silent-failures) (`isError: true`) now
+gets a stable 16-character identity, computed locally, that groups
+identical underlying failures together — even when the error message
+itself is different every time.
+
+<Callout variant="tip" title="TL;DR">
+  A SHA-256 hash, truncated to 16 hex characters, computed from a
+  normalized error class, category, origin, and stack signature — not the
+  raw message or raw stack, which would defeat grouping. Only two of the
+  five resulting attributes (`category`, `origin`) are safe to put on a
+  metric label; that's enforced structurally, not by convention. See
+  [Deep Failure Fingerprinting](/docs/deep-fingerprinting) for the full
+  reference.
+</Callout>
+
+## What problem does this solve?
+
+Before v0.4.0, opentel-mcp gave you a span marked `ERROR` on every
+failure, but every failure looked like its own, unrelated incident. Ten
+calls that failed for the exact same reason — the same downstream
+timeout, the same validation bug — showed up as ten separate errors in a
+dashboard, distinguished only by whatever incidental detail (a request
+ID, a timestamp, a user ID) happened to be in the message. Nothing tied
+them together as "this is one bug happening ten times" versus "these are
+ten different bugs." Deep Failure Fingerprinting exists to answer that
+question directly: same fingerprint, same underlying bug.
+
+## How is the fingerprint computed?
+
+The pipeline classifies the failure into one of 8 categories
+(`validation`, `timeout`, `network`, `auth`, `dependency`,
+`serialization`, `internal`, `unknown`) through seven ordered
+classifiers, normalizes the error message and stack trace to strip
+high-cardinality noise like UUIDs and timestamps, and folds all of it
+into a versioned input string that gets hashed:
+
+```js
+// src/fingerprint/hash.js
+export function hashInputs(input) {
+  return createHash('sha256').update(input, 'utf8').digest('hex').slice(0, 16);
+}
+```
+
+SHA-256 truncated to 16 hex characters (64 bits) — enough for identity
+at the scale this is meant for (roughly 1-in-4-billion collision odds at
+100,000 unique fingerprints), fast enough to stay well inside a
+per-failure budget of a couple hundred microseconds, and native to
+Node's `crypto` module so it doesn't add a runtime dependency. The full
+reasoning, including why xxhash and murmurhash were considered and
+rejected, is in the source itself — see
+[Deep Failure Fingerprinting](/docs/deep-fingerprinting) for the
+complete pipeline.
+
+## Why does cardinality safety matter here specifically?
+
+Because a fingerprint is, by design, unbounded — a new bug means a new
+fingerprint, forever. That's exactly right for a span attribute (each
+span is its own record, so an unbounded value costs nothing extra), and
+exactly wrong for a metric label, where every distinct value becomes its
+own permanent time series. Put an unbounded fingerprint on a counter and
+the counter's cardinality grows forever alongside your bug count.
+
+opentel-mcp enforces the boundary in code, not in a review checklist:
+
+```js
+// src/fingerprint/attributes.js
+export const METRIC_SAFE_ATTRIBUTES = Object.freeze([
+  ATTRIBUTE_KEYS.CATEGORY, // 'mcp.failure.category' — 8 values
+  ATTRIBUTE_KEYS.ORIGIN,   // 'mcp.failure.origin' — 3 values
+]);
+```
+
+`src/metrics.js` can only reach a fingerprint-derived value through this
+one frozen array. `fingerprint`, `signature`, and `error_class` — the
+higher-cardinality attributes — have no code path to a metric label at
+all. Twenty-four combinations of category and origin, maximum, ever.
+
+## How was this tested?
+
+136 tests, zero regressions, across the full opentel-mcp suite by the
+time v0.4.0 shipped — including a dedicated benchmark asserting the
+fingerprinting pipeline stays under its microsecond-scale performance
+budget, since this runs inline on every single failure the instrumented
+server sees. `computeFingerprint()` also runs its entire pipeline inside
+one top-level try/catch specifically so a bug in fingerprinting itself
+can never surface as an exception into the tool call it's observing — if
+anything goes wrong internally, it falls back to a fixed identity
+(`0000000000000000`) instead.
+
+## How was this actually built?
+
+With Claude Code, in eight narrow, reviewable phases rather than one
+large generation pass — extend the failure classifiers, build the
+message- and stack-normalization pipeline, wire the hash function, thread
+the resulting attributes through the span and metric code, write the
+tests for each piece as it landed. Each phase was small enough to review
+completely before moving to the next, which is the same discipline this
+website's own build has followed (see the site repo's own `CLAUDE.md`
+and `DECISIONS.md` if you're curious what that looks like from the
+outside): narrow prompts, verify against the real source before writing
+anything down, log every non-obvious call instead of leaving it
+implicit.
+
+## What's next?
+
+`computeFingerprint()`'s `classifiers` and `stackFrames` options aren't
+wired through `instrumentMcpServer()`'s own options yet — using a custom
+classifier today means calling `computeFingerprint()` directly. That's
+planned for v0.5.0, along with adding `fingerprinting` to the published
+`InstrumentOptions` TypeScript interface, which currently lags what
+`src/config.js` actually implements. See
+[the changelog](/changelog) for what's shipped so far.
+
+## Where do I go from here?
+
+- [Deep Failure Fingerprinting](/docs/deep-fingerprinting) — full
+  reference: all 8 categories, all 5 attributes, the fallback behavior.
+- [Metrics](/docs/metrics) — where `mcp.failure.category` shows up on
+  the `mcp.tool.errors` and `mcp.tool.silent_failures` counters.
+- [Silent Failures](/docs/silent-failures) — the `isError: true`
+  detection every `tool_error`-origin fingerprint starts from.
