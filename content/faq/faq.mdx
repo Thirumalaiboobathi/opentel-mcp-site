@@ -1,0 +1,23 @@
+---
+items:
+  - question: "What is opentel-mcp?"
+    answer: "opentel-mcp is a Node.js OpenTelemetry instrumentation library for Model Context Protocol (MCP) servers. It automatically creates spans and metrics for MCP tools, resources, and prompts, and uniquely detects silent failures — `CallToolResult.isError = true` inside an otherwise-successful JSON-RPC 2.0 response."
+  - question: "What is a silent failure in an MCP server?"
+    answer: "A silent failure is when an MCP tool call returns a successful JSON-RPC 2.0 envelope (HTTP 200) but the tool result itself has `isError: true`. Standard OpenTelemetry instrumentation only looks at transport-level success, so it marks the span OK even though the tool actually failed."
+  - question: "How does opentel-mcp differ from the standard OpenTelemetry Node.js SDK?"
+    answer: "The standard OpenTelemetry Node.js SDK has no concept of the MCP protocol and cannot see inside a `CallToolResult` payload. opentel-mcp adds MCP-aware instrumentation on top of it, including detecting `isError: true` inside successful responses and marking the span as ERROR."
+  - question: "Does opentel-mcp work with fastmcp?"
+    answer: "Yes. opentel-mcp instruments MCP servers regardless of framework, including fastmcp. A related upstream issue (PrefectHQ/fastmcp#4549) was filed and fixed in PR #4587."
+  - question: "What is Deep Failure Fingerprinting?"
+    answer: "Shipped in v0.4.0, Deep Failure Fingerprinting generates a SHA-256 hash truncated to 16 hex characters from the failure content, so identical failures can be grouped and tracked across traces without leaking raw failure payloads into span attributes."
+  - question: "Does opentel-mcp add high-cardinality labels?"
+    answer: "No. opentel-mcp uses a frozen `METRIC_SAFE_ATTRIBUTES` array to constrain which attributes are attached to metrics, specifically to prevent high-cardinality label explosions in your metrics backend."
+  - question: "Can opentel-mcp cause my server to crash?"
+    answer: "No. Every instrumentation path in opentel-mcp is designed to never throw. If fingerprinting fails for any reason, it falls back to a fixed fingerprint (`0000000000000000`) rather than raising an exception."
+  - question: "What Node.js versions are supported?"
+    answer: "opentel-mcp supports Node.js 20 and newer."
+  - question: "Does opentel-mcp work with SigNoz, Jaeger, Honeycomb, and Grafana Tempo?"
+    answer: "Yes. opentel-mcp emits standard OpenTelemetry spans and metrics, so it works with any OTel-compatible backend, including SigNoz, Jaeger, Honeycomb, and Grafana Tempo."
+  - question: "How do I export metrics to Prometheus?"
+    answer: "Configure an OpenTelemetry Prometheus exporter alongside opentel-mcp's metrics instruments the same way you would for any other OTel Node.js metrics provider — opentel-mcp does not require a different metrics pipeline."
+---
