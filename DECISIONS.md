@@ -244,3 +244,67 @@ design-asset task (someone needs to actually produce/export icon files),
 not something to fabricate as placeholder binaries. `pnpm build` doesn't
 validate referenced-but-missing public assets, so this doesn't block the
 build — flagged in `CLAUDE.md` so it isn't forgotten before launch.
+
+## Round 2 (Phase 5 content — flagship page)
+
+### All technical claims sourced directly from the real opentel-mcp repo and the live MCP spec
+Per the user's anti-fabrication rule, fetched the actual v0.4.0 source
+(`src/instrument.js`, `src/attributes.js`, `src/metrics.js`,
+`src/config.js`, `package.json`, `README.md`) from
+`github.com/Thirumalaiboobathi/opentel-mcp` and the live MCP
+specification (`modelcontextprotocol.io/specification/2025-06-18/server/
+tools`) before writing anything. Every attribute name, the
+`isToolResultError()` detection function, the four metric names, and the
+MCP spec quote in `/docs/silent-failures` are copied or trimmed directly
+from those sources — nothing paraphrased or guessed. Confirmed directly
+from source (no `VERIFY` needed): Node.js `>=20`, `@opentelemetry/api
+^1.9.0` peer dependency, `fingerprinting` defaults to `true`. Left
+`<!-- VERIFY -->` for anything not stated in the source or spec — see the
+per-page list at the end of Phase 5.
+
+### `content/docs/silent-failures.mdx`'s before/after span JSON is illustrative, not a real export
+The user explicitly asked for "SigNoz-shape" before/after span JSON,
+flagged as illustrative. Built two JSON blocks using opentel-mcp's real
+attribute names/values from `src/attributes.js` (`mcp.method.name`,
+`gen_ai.tool.name`, `error.type: "tool_error"`, etc.), shaped the way a
+trace viewer would display a span — but the JSON itself isn't copied from
+any actual SigNoz export or test fixture, and the page says so via an
+inline `Callout`.
+
+### Docs collection gained an `author` field
+The Phase 5 tone rules require `author` in every doc's frontmatter (in
+addition to the blog collection, which already had it from Phase 1).
+Added `author: s.string().default("Thirumalaiboobathi B")` to the `docs`
+schema in `velite.config.ts` and surfaced it as a "By {author}" byline in
+`app/docs/[slug]/page.tsx`, next to the existing "Last updated" line. The
+default means the 5 not-yet-rewritten placeholder docs (getting-started,
+deep-fingerprinting, metrics, api-reference, migration) still build
+without edits; they'll get the explicit frontmatter field when their real
+content lands later in this round.
+
+### `doc.dateModified`/`doc.datePublished` are full ISO timestamps — formatted for display
+Velite's `s.isodate()` normalizes dates to a full ISO 8601 timestamp
+(e.g. `2026-07-26T00:00:00.000Z`), not just a date. Rendering that raw
+next to "Last updated:" looked broken. Added `formatDate()` to
+`lib/utils.ts` (`Intl`-based, UTC, "July 26, 2026" style) for display;
+`lib/schema.ts`'s `buildTechArticleSchema` still receives the raw ISO
+strings unchanged, since that's the format schema.org/JSON-LD expects.
+
+### Flagging, not fixing: the landing page's "HTTP 200" framing is a simplification
+`components/landing/ProblemStatement.tsx` (and the Hero's copy) describe
+the silent-failure envelope as reporting "HTTP 200 OK". That's only
+accurate for MCP servers running over an HTTP-based transport — MCP also
+runs over stdio (the transport opentel-mcp's own README quickstart
+actually uses), which has no HTTP status codes at all. The new docs
+content in this round avoids that framing (talks about "a successful
+JSON-RPC 2.0 response" generically, not HTTP specifically). Not fixing
+the Phase 3 landing copy now — that's outside this round's scope — but
+flagging it here since it's a real, minor accuracy gap worth a follow-up
+pass before launch.
+
+### `/comparison` link in the flagship page's "Where do I go from here?" points at a route that doesn't exist yet
+Same forward-linking pattern already established in Phase 2/3 (Header nav
+links to `/docs`, `/faq`, etc. before those pages existed) — `/comparison`
+ships in Phase 6. Not a build error under `output: 'export'` (sitemap/
+link generation doesn't validate target routes exist), just noting it so
+it isn't mistaken for an oversight later.

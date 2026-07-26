@@ -37,13 +37,17 @@ not the *spec*.
 
 ## Current Phase
 
-Round 1 complete: Phase 4 (docs infrastructure) + Phase 7 scaffold
-(SEO/AEO plumbing, no content yet). Verified via clean `pnpm build`
-producing all 21 routes in `out/`. Explicitly paused here per user
-direction — Phase 5 (content) needs a voice-alignment pass on the
-flagship silent-failures page before writing the rest of the docs.
-Round 2 (real doc content) and Round 3 (llms.txt/llms-full.txt full
-curation) are queued but not started.
+Phase 5 (content) in progress. `/docs/silent-failures` (the flagship
+page) is drafted, sourced directly from the real opentel-mcp v0.4.0
+repo and the live MCP spec — see DECISIONS.md's "Round 2" section for
+what was verified vs. flagged with `<!-- VERIFY -->`. Paused per user
+instruction ("hard stop 1") for voice-alignment review before writing
+the remaining 11 pages (getting-started, deep-fingerprinting, metrics,
+api-reference, migration, docs overview, faq, comparison, changelog,
+about, blog seed post).
+
+Round 1 (Phase 4 docs infrastructure + Phase 7 SEO/AEO scaffold) is
+complete — see Phase Checklist below.
 
 ## Lessons
 

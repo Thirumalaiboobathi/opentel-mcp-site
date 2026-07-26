@@ -12,6 +12,7 @@ import {
   buildBreadcrumbListSchema,
   buildTechArticleSchema,
 } from "@/lib/schema";
+import { formatDate } from "@/lib/utils";
 
 export function generateStaticParams() {
   return docs.map((doc) => ({ slug: doc.slug }));
@@ -81,7 +82,8 @@ export default async function DocPage({
           </p>
 
           <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-text-tertiary">
-            <span>Last updated: {doc.dateModified}</span>
+            <span>By {doc.author}</span>
+            <span>Last updated: {formatDate(doc.dateModified)}</span>
             <a
               href={editUrl}
               target="_blank"

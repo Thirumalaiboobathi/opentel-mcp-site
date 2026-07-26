@@ -16,6 +16,7 @@ const docs = defineCollection({
       order: s.number().default(0),
       datePublished: s.isodate(),
       dateModified: s.isodate(),
+      author: s.string().default("Thirumalaiboobathi B"),
       toc: s.toc(),
       content: s.mdx(),
     })

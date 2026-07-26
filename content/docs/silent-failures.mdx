@@ -1,30 +1,198 @@
 ---
 slug: "silent-failures"
 title: "Silent Failures"
-description: "What a silent failure is in an MCP server, and how opentel-mcp detects CallToolResult.isError inside an otherwise-successful JSON-RPC response."
+description: "MCP tool calls can return isError: true inside a successful JSON-RPC 2.0 response. Why OpenTelemetry misses that, and how opentel-mcp catches it."
 section: "Concepts"
 order: 0
 datePublished: "2026-07-26"
 dateModified: "2026-07-26"
+author: "Thirumalaiboobathi B"
 ---
 
-<Callout variant="critical" title="Coming soon">
-  This is the flagship page — full content (MCP schema quote, before/after
-  span JSON, ASCII diagram) ships in Round 2 after voice review.
+A silent failure is a Model Context Protocol (MCP) tool call whose
+JSON-RPC 2.0 response completes successfully while the tool result itself
+reports failure through `CallToolResult.isError`. Standard OpenTelemetry
+instrumentation only looks at whether the JSON-RPC call completed — it
+doesn't parse the result payload — so it marks the span OK even though the
+tool failed. [opentel-mcp](https://www.npmjs.com/package/opentel-mcp)
+checks `isError` directly and marks the span `ERROR` instead.
+
+<Callout variant="tip" title="TL;DR">
+  MCP lets a tool report failure two ways: a JSON-RPC protocol error, or a
+  successful response with `isError: true` inside the result. The second
+  kind is invisible to instrumentation that only checks JSON-RPC-level
+  success. opentel-mcp checks `result.isError` on every tool call and
+  marks the OpenTelemetry span `ERROR` when it's `true` — nothing else
+  about the response changes, the caller still gets the result it asked
+  for.
 </Callout>
 
-A silent failure is when an MCP tool call returns a successful JSON-RPC
-2.0 envelope, but the tool result itself has `isError: true`.
+## What is a silent failure in MCP?
 
-## Why standard instrumentation misses this
+MCP's `tools/call` method has two, unrelated layers of "did this work":
+
+1. **Did the JSON-RPC call itself complete?** This is protocol-level.
+   Bad method name, malformed arguments, a server crash — these come back
+   as a JSON-RPC `error` object, and any transport-level or protocol-level
+   instrumentation sees them.
+2. **Did the tool's own logic succeed?** This is the `CallToolResult`
+   the server returns inside a *successful* JSON-RPC response. It can
+   still carry `isError: true` — an API call timed out, an input was
+   invalid, a downstream service returned garbage — but the JSON-RPC
+   envelope around it reports success either way.
+
+Here's what that second case looks like on the wire — a JSON-RPC response
+that completed fine, carrying a tool-level failure inside `result`:
+
+```text
+┌─ JSON-RPC 2.0 response ──────────────────────────┐
+│  { "jsonrpc": "2.0", "id": 4,                     │
+│    "result": {                        ◄── this is a
+│      "content": [{ "type": "text",        SUCCESSFUL
+│        "text": "API rate limit           JSON-RPC
+│         exceeded" }],                    response
+│      "isError": true          ◄── the tool itself
+│    }                              still failed
+│  }                                                │
+└───────────────────────────────────────────────────┘
+```
+
+The outer envelope never has an `error` field. Anything that only checks
+"did the JSON-RPC call succeed" — which is most generic instrumentation —
+reads this as a clean success.
+
+## Why do standard OpenTelemetry libraries miss them?
+
+Generic instrumentation for a JSON-RPC-shaped protocol typically watches
+one thing: did the call resolve without a protocol-level error. That's
+enough for most JSON-RPC APIs, where "the response came back and has no
+`error` field" really does mean success. MCP breaks that assumption on
+purpose — the specification defines tool execution errors as a separate,
+in-band mechanism, precisely so a tool can report "I failed" without
+forcing the whole JSON-RPC call to fail.
+
+The [MCP specification's Tools page](https://modelcontextprotocol.io/specification/2025-06-18/server/tools#error-handling)
+puts it directly:
+
+> Tools use two error reporting mechanisms:
+>
+> 1. **Protocol Errors**: Standard JSON-RPC errors for issues like:
+>    Unknown tools, Invalid arguments, Server errors
+> 2. **Tool Execution Errors**: Reported in tool results with
+>    `isError: true`: API failures, Invalid input data, Business logic
+>    errors
+
+And its own example of a tool execution error — note there's no
+`"error"` key anywhere in this response:
 
 ```json
 {
+  "jsonrpc": "2.0",
+  "id": 4,
   "result": {
-    "isError": true,
-    "content": [{ "text": "Connection timeout" }]
+    "content": [
+      {
+        "type": "text",
+        "text": "Failed to fetch weather data: API rate limit exceeded"
+      }
+    ],
+    "isError": true
   }
 }
 ```
 
-Full explanation and diagrams land in Round 2.
+Instrumentation that stops at "the JSON-RPC call succeeded" — which
+describes most generic RPC/HTTP auto-instrumentation, since it has no
+reason to know MCP's `CallToolResult` shape — never opens `result` far
+enough to see `isError`. The span comes out OK. Your dashboards show a
+clean call. The agent got a failure back and, if nothing downstream
+checks for it either, may act on it anyway.
+
+## How does opentel-mcp detect them?
+
+The check itself is small — one function, reused everywhere the
+detection needs to happen (tracing and metrics both call it, so the
+logic isn't duplicated):
+
+```js
+// src/instrument.js
+function isToolResultError(result) {
+  return result?.isError === true;
+}
+```
+
+When `isToolResultError()` is true, opentel-mcp's span wrapper:
+
+- sets the span status to `ERROR` (`SpanStatusCode.ERROR`)
+- sets the `error.type` attribute to `"tool_error"` — the value
+  opentel-mcp uses specifically for this case, distinct from a thrown
+  exception's error type
+- still returns the result to the caller completely unchanged — nothing
+  is thrown, the JSON-RPC call itself really did succeed
+
+(Trimmed for clarity — the full wrapping logic, including the metrics
+side, is in `src/instrument.js`'s `wrapToolCallHandler`.)
+
+### Before and after: what the trace looks like
+
+<Callout variant="warning" title="Illustrative">
+  These two span examples are illustrative — built from opentel-mcp's real
+  attribute names and values (`src/attributes.js`), shaped the way a
+  trace viewer like SigNoz would display them, but not a literal export
+  from any specific tool.
+</Callout>
+
+Generic instrumentation that only sees the transport, not the
+`CallToolResult` shape:
+
+```json
+{
+  "name": "POST /mcp",
+  "kind": "SERVER",
+  "status": { "code": "OK" },
+  "attributes": {
+    "http.method": "POST",
+    "http.status_code": 200
+  }
+}
+```
+
+The same call, instrumented with opentel-mcp:
+
+```json
+{
+  "name": "tools/call fetch_weather",
+  "kind": "SERVER",
+  "status": { "code": "ERROR" },
+  "attributes": {
+    "mcp.method.name": "tools/call",
+    "gen_ai.tool.name": "fetch_weather",
+    "gen_ai.operation.name": "execute_tool",
+    "mcp.tool.argument_count": 1,
+    "error.type": "tool_error"
+  }
+}
+```
+
+Same call, same outcome — but only one of these tells you it failed.
+
+opentel-mcp also increments a dedicated `mcp.tool.silent_failures`
+counter from this exact same check — see
+[Metrics](/docs/metrics) for the full instrument list.
+
+One more thing happens on this span that we're not covering here:
+opentel-mcp v0.4.0 also attaches a stable fingerprint to failures like
+this one, so repeated occurrences of the same underlying bug group
+together instead of showing up as unrelated one-off errors. That's
+[Deep Failure Fingerprinting](/docs/deep-fingerprinting) — a separate
+page, since there's enough to it to warrant one.
+
+## Where do I go from here?
+
+- [Getting Started](/docs/getting-started) — install opentel-mcp and get
+  your first trace.
+- [Metrics](/docs/metrics) — the `mcp.tool.silent_failures` counter and
+  the other three instruments opentel-mcp emits.
+- [Comparison](/comparison) — how detecting `CallToolResult.isError`
+  compares to raw `@opentelemetry/api` instrumentation and other MCP
+  tooling.
