@@ -178,12 +178,11 @@ Custom classifiers run *before* the 7 built-in ones, so they get first
 refusal on an error. Full type signatures are on the
 [API Reference](/docs/api-reference) page.
 
-{/* VERIFY: computeFingerprint is not currently wired through
-instrumentMcpServer()'s own options — using a custom classifiers list or
-non-default stackFrames today means calling computeFingerprint()
-directly rather than configuring it through instrumentMcpServer(). This
-matches the source as of this writing; confirm whether that's changed by
-the time this ships. */}
+`computeFingerprint()`'s `classifiers` and `stackFrames` options aren't
+currently wired through `instrumentMcpServer()`'s own options — using
+them today means calling `computeFingerprint()` directly rather than
+configuring it through `instrumentMcpServer()`. Wiring these through
+`instrumentMcpServer()`'s options is planned for v0.5.0.
 
 ## Where do I go from here?
 

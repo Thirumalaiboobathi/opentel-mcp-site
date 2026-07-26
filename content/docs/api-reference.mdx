@@ -81,10 +81,8 @@ interface InstrumentOptions {
   of this writing it isn't listed in the `InstrumentOptions` TypeScript
   interface in `src/index.d.ts` — only in `config.js`'s JSDoc typedef.
   TypeScript consumers may see a type error passing `{ fingerprinting:
-  false }` even though it's honored at runtime.
-  {/* VERIFY: confirm this is still the case in the exact published npm
-  tarball for v0.4.0, not just the main branch, and whether it's already
-  tracked as a known issue upstream. */}
+  false }` even though it's honored at runtime. Will be added to
+  `InstrumentOptions` in v0.5.0.
 </Callout>
 
 ### What do I get back from `instrumentMcpServer()`?

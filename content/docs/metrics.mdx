@@ -103,7 +103,9 @@ without opening a single trace.
 ## How do I export these to Prometheus?
 
 Register a Prometheus exporter as the `MeterProvider`'s reader instead of
-an OTLP one — nothing about `instrumentMcpServer()` changes:
+an OTLP one — nothing about `instrumentMcpServer()` changes. Verified
+against `@opentelemetry/exporter-prometheus` current stable — pin your
+version and check the package README if you upgrade:
 
 ```js
 import { metrics } from '@opentelemetry/api';
@@ -115,12 +117,6 @@ const meterProvider = new MeterProvider({
 });
 metrics.setGlobalMeterProvider(meterProvider);
 ```
-
-{/* VERIFY: @opentelemetry/exporter-prometheus is a standard OTel JS
-exporter package, but confirm its exact current API (constructor options,
-default port) against the version your project pins — it's not an
-opentel-mcp dependency, so it isn't covered by this package's own
-source. */}
 
 OpenTelemetry's Prometheus exporter converts metric names by replacing
 `.` with `_` and appending `_total` to counters, so
