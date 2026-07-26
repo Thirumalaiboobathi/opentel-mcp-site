@@ -123,6 +123,14 @@
   .prose-content {
     max-width: 65ch;
   }
+  .prose-content :not(pre) > code {
+    background-color: var(--muted);
+    color: var(--foreground);
+    border-radius: calc(var(--radius) * 0.6);
+    padding: 0.125rem 0.375rem;
+    font-family: var(--font-geist-mono);
+    font-size: 0.9em;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -1,0 +1,30 @@
+---
+slug: "silent-failures"
+title: "Silent Failures"
+description: "What a silent failure is in an MCP server, and how opentel-mcp detects CallToolResult.isError inside an otherwise-successful JSON-RPC response."
+section: "Concepts"
+order: 0
+datePublished: "2026-07-26"
+dateModified: "2026-07-26"
+---
+
+<Callout variant="critical" title="Coming soon">
+  This is the flagship page — full content (MCP schema quote, before/after
+  span JSON, ASCII diagram) ships in Round 2 after voice review.
+</Callout>
+
+A silent failure is when an MCP tool call returns a successful JSON-RPC
+2.0 envelope, but the tool result itself has `isError: true`.
+
+## Why standard instrumentation misses this
+
+```json
+{
+  "result": {
+    "isError": true,
+    "content": [{ "text": "Connection timeout" }]
+  }
+}
+```
+
+Full explanation and diagrams land in Round 2.

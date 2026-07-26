@@ -1,0 +1,25 @@
+---
+slug: "migration"
+title: "Migration Guide"
+description: "How to migrate an MCP server from raw @opentelemetry/api instrumentation to opentel-mcp."
+section: "Guides"
+order: 0
+datePublished: "2026-07-26"
+dateModified: "2026-07-26"
+---
+
+<Callout variant="tip" title="Coming soon">
+  Full step-by-step migration guide ships in Round 2.
+</Callout>
+
+## From raw @opentelemetry/api
+
+```ts
+// Before
+import { trace } from "@opentelemetry/api";
+
+// After
+import { instrumentMcpServer } from "opentel-mcp";
+```
+
+Full guide lands in Round 2.
