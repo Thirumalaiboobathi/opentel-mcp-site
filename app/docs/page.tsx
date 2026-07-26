@@ -2,8 +2,9 @@ import Link from "next/link";
 import type { Metadata } from "next";
 
 import { docs } from "@/.velite";
+import { Callout } from "@/components/content/Callout";
 import { JsonLd } from "@/components/seo/JsonLd";
-import { DOCS_NAV, SITE } from "@/lib/constants";
+import { DOCS_NAV, PACKAGE, SITE } from "@/lib/constants";
 import { buildMetadata } from "@/lib/metadata";
 import { buildBreadcrumbListSchema } from "@/lib/schema";
 
@@ -28,10 +29,29 @@ export default function DocsOverviewPage() {
           Documentation
         </h1>
         <p className="mt-4 text-muted-foreground">
-          Everything you need to instrument an MCP server with{" "}
-          {SITE.name} — from a 60-second install to the internals of
-          deep failure fingerprinting.
+          {PACKAGE.name} is a {PACKAGE.runtime} OpenTelemetry
+          instrumentation library for Model Context Protocol (MCP)
+          servers. These pages cover installing it, what{" "}
+          <code className="rounded-md bg-muted px-1.5 py-0.5 font-mono text-[0.9em] text-foreground">
+            CallToolResult.isError
+          </code>{" "}
+          detection actually does, the metrics and fingerprinting it
+          emits, and how to migrate from raw {"@opentelemetry/api"}{" "}
+          instrumentation.
         </p>
+
+        <Callout variant="tip" title="Where to start">
+          New to {PACKAGE.name}? Start with{" "}
+          <Link href="/docs/getting-started" className="text-brand hover:underline">
+            Getting Started
+          </Link>
+          . Already have manual OpenTelemetry instrumentation on your MCP
+          server? Start with the{" "}
+          <Link href="/docs/migration" className="text-brand hover:underline">
+            Migration Guide
+          </Link>{" "}
+          instead.
+        </Callout>
 
         <div className="mt-10 flex flex-col gap-8">
           {DOCS_NAV.map((group) => (
