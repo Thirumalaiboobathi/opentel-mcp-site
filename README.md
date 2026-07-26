@@ -11,21 +11,28 @@ reasoning behind every non-obvious technical choice made in this repo.
 
 ## Local development
 
-Requires Node.js 22.x and pnpm (managed via corepack — do not install pnpm
-from any other source).
+**Prerequisites:** Node.js 22.x, and pnpm managed via corepack (do not
+install pnpm from any other source — an unmanaged/Windows-side pnpm on
+`PATH` has caused real problems in this repo's history, see
+`CLAUDE.md`). Developed natively on WSL2 Ubuntu 24.04; that's this
+project's own environment, not a hard requirement — any Linux/macOS
+environment with the above should work the same way.
 
 ```bash
 corepack enable
 corepack prepare pnpm@10.30.1 --activate
 
 pnpm install
-pnpm dev        # http://localhost:3000
+pnpm dev        # http://localhost:3000, hot-reloads on content and code changes
 ```
 
 Other scripts:
 
 ```bash
-pnpm build      # static export to out/
+pnpm build              # static export to out/, includes llms-full.txt generation
+pnpm generate:llms-full # re-run just the llms-full.txt generation step against
+                         # an existing out/ (requires pnpm build to have run at
+                         # least once already — see "Regenerating llms-full.txt" below)
 pnpm tsc --noEmit
 pnpm lint
 ```
@@ -36,17 +43,36 @@ All docs, blog posts, and FAQ content live under `content/` as MDX,
 indexed by [Velite](https://velite.js.org) (`velite.config.ts`) into typed
 collections consumed by the corresponding `app/` routes.
 
-- `content/docs/*.mdx` — one file per docs page. Frontmatter: `title`,
-  `description`, `section` (`Introduction` | `Concepts` | `Reference` |
-  `Guides`), `order`, `datePublished`, `dateModified`.
-- `content/blog/*.mdx` — one file per post. Frontmatter: `title`,
-  `description`, `datePublished`, `dateModified`, `author`, `tags`.
+- `content/docs/*.mdx` — one file per docs page. Frontmatter: `slug`
+  (required — does **not** auto-derive from the filename, see
+  `DECISIONS.md`), `title`, `description` (≤180 chars, ≤155 recommended
+  for the actual `<meta description>` — see `lib/metadata.ts`),
+  `section` (`Introduction` | `Concepts` | `Reference` | `Guides`),
+  `order`, `datePublished`, `dateModified`, `author` (defaults to
+  `"Thirumalaiboobathi B"` if omitted).
+- `content/blog/*.mdx` — one file per post. Frontmatter: `slug`,
+  `title`, `description`, `datePublished`, `dateModified`, `author`
+  (same default as docs), `tags` (array, defaults to `[]`).
 - `content/faq/faq.mdx` — single file, frontmatter-only `items: [{ question,
-  answer }]` array (no MDX body).
+  answer }]` array (no MDX body). `answer` supports inline markdown
+  (bold, code spans, links) — it's compiled to HTML at build time.
+
+**Adding a new docs page:** create `content/docs/<slug>.mdx` with the
+frontmatter above, add an entry to `DOCS_NAV` in `lib/constants.ts`
+(controls sidebar grouping/order — the `order` frontmatter field alone
+doesn't drive navigation), then `pnpm dev` to see it live. No route file
+needs to be created — `app/docs/[slug]/page.tsx` handles every slug via
+`generateStaticParams()`.
+
+**Adding a new blog post:** create `content/blog/<slug>.mdx` — `app/blog/
+[slug]/page.tsx` and the `/blog` index both pick it up automatically the
+same way.
 
 Velite regenerates its typed index automatically as part of `next dev` /
 `next build` (see the `VeliteWebpackPlugin` in `next.config.mjs`) — there is
-no separate build step to remember.
+no separate build step to remember for content changes themselves. After
+any content change, `pnpm build` also regenerates `llms-full.txt` — see
+below.
 
 Package facts, author bio, and target keywords are centralized in
 `lib/constants.ts` (`SITE`, `PACKAGE`, `AUTHOR`, `KEYWORDS`) — update there,
@@ -100,7 +126,7 @@ deployment for every other branch and pull request.
 ### Regenerating `llms-full.txt` after a content change
 
 `public/llms-full.txt` is not the file actually served — `pnpm build`
-runs `scripts/generate-llms-full.mjs` as its final step, which reads the
+runs `scripts/generate-llms-full.js` as its final step, which reads the
 freshly built `out/**/index.html` (and the raw MDX source for docs/blog)
 and overwrites `out/llms-full.txt` directly. This happens automatically
 on every build, including Cloudflare's, so there's nothing to remember

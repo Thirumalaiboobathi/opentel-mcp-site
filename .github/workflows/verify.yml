@@ -51,5 +51,7 @@ jobs:
           fi
           echo "Docs route count OK: $count"
 
-      - name: Verify llms-full.txt was generated
-        run: test -f out/llms-full.txt
+      - name: Verify llms.txt and llms-full.txt exist
+        run: |
+          test -f out/llms.txt
+          test -f out/llms-full.txt
