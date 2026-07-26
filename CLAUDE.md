@@ -219,10 +219,15 @@ an index so a fresh session knows where to look. Summary of Phase 1 calls:
       layout, scroll-spy TOC, CodeBlock w/ Shiki+copy+language badge,
       Callout, MDX render pipeline, 6 placeholder doc routes w/
       TechArticle+BreadcrumbList JSON-LD — real content is Round 2)
-- [ ] Phase 5 — Content (paused: need to align on flagship
-      silent-failures page voice before writing docs content)
-- [ ] Phase 6 — FAQ/Comparison/Changelog/About/Blog
-- [~] Phase 7 — SEO + AEO layer (scaffold done: sitemap, robots w/ 12
-      AI-bot allow-list, manifest, dynamic OG images (root + per-doc),
-      full lib/schema.ts builder set, lib/metadata.ts, llms.txt/
-      llms-full.txt scaffolds — llms.txt full curation is Round 3)
+- [x] Phase 5 — Content (all 6 docs + flagship, sourced from real
+      opentel-mcp v0.4.0 repo, zero unresolved VERIFY comments)
+- [x] Phase 6 — FAQ (20 Q&A, FAQPage JSON-LD) / Comparison (long-form,
+      TechArticle) / Changelog (v0.1.0–v0.4.0, real git history) / About
+      (Person JSON-LD) / Blog (seed post, BlogPosting JSON-LD) —
+      delivered as part of Phase 5's Batch B/C, not a separate pass
+- [x] Phase 7 — SEO + AEO layer (sitemap, robots w/ 12 AI-bot allow-list,
+      manifest, dynamic OG images root+per-doc, full lib/schema.ts
+      builder set with all 10 types actually emitted somewhere,
+      lib/metadata.ts, curated llms.txt, build-generated llms-full.txt,
+      full JSON-LD/metadata/accessibility validation pass — see
+      DECISIONS.md "Round 6" for 5 real bugs it found and fixed)
