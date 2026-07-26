@@ -68,6 +68,18 @@ One bullet per page, updated after each commit.
 - `/docs/deep-fingerprinting` — 1038 words, 1 `VERIFY` comment (whether
   `computeFingerprint` has since been wired through
   `instrumentMcpServer()`'s own options — as of this writing it hasn't).
+- All 3 Batch A `VERIFY` comments resolved per user answers (all 3
+  confirmed against the published v0.4.0 tarball) — see DECISIONS.md.
+- `/docs/getting-started` — 553 words, 0 `VERIFY` comments. Quickstart
+  code and captured terminal output copied verbatim from the README, not
+  rewritten.
+- `/docs/migration` — 563 words, 0 `VERIFY` comments.
+- `/docs` overview — rewritten intro + "Where to start" callout, 0
+  `VERIFY` comments.
+- `/faq` — 20 questions, 0 `VERIFY` comments, `FAQPage` JSON-LD
+  (20-item `mainEntity` verified in build output). Cross-checking
+  against the Batch A pages surfaced and fixed two real inaccuracies
+  inherited from the Phase 1 FAQ stub — see DECISIONS.md.
 
 ## Lessons
 

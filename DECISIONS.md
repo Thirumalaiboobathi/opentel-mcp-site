@@ -341,3 +341,56 @@ attribute sets (`mcp.tool.calls`, `mcp.tool.errors`,
 `mcp.tool.silent_failures`, `mcp.tool.duration`) — used all four with
 confidence in `/docs/metrics`, no `VERIFY` needed on the instrument names
 themselves.
+
+## Round 4 (Phase 5 content — Batch B)
+
+### Cross-checking the FAQ against Batch A surfaced and fixed two real fabrications from Phase 1
+Per the user's instruction to cross-check every FAQ answer against
+`/docs/api-reference`, `/docs/metrics`, and `/docs/deep-fingerprinting`
+before shipping, re-read the Phase 1 FAQ stub (10 questions, written
+before this session had pulled the real opentel-mcp source) against what
+Batch A's research actually confirmed. Two answers were wrong:
+
+1. **"What is opentel-mcp?"** claimed it creates spans for "tools,
+   resources, and prompts." `src/instrument.js` only wraps the handler
+   registered for `CallToolRequestSchema` (`tools/call`) — requests for
+   `resources/*` or `prompts/*` pass through completely unwrapped. Fixed
+   to say "tools" only, and added a new, explicit FAQ entry ("Does
+   opentel-mcp instrument resources and prompts, or just tools?") so
+   this isn't just quietly corrected but stated plainly, since it's
+   exactly the kind of scope question a developer evaluating the
+   package would ask.
+2. **"Does opentel-mcp work with fastmcp?"** answered "Yes." This is
+   false: fastmcp (`PrefectHQ/fastmcp`) is a Python framework; opentel-mcp
+   is a Node.js package for `@modelcontextprotocol/sdk`-based servers.
+   It cannot instrument a Python process — different language runtime
+   entirely. The real connection between the two projects is narrower
+   and unrelated to compatibility: the author found and reported a
+   silent-failure-propagation bug in fastmcp itself
+   (`PrefectHQ/fastmcp#4549`, fixed in `PR #4587`). Rewrote the answer to
+   state that plainly rather than implying runtime compatibility that
+   doesn't exist. This is exactly the class of error the user's
+   anti-fabrication rules exist to catch — worth flagging clearly rather
+   than silently fixing, since it shipped (on the landing page's Social
+   Proof section, worded more carefully there as "filed and fixed an
+   upstream fastmcp bug") in an earlier phase without this cross-check.
+   Not touching the landing page copy in this round — its existing
+   wording is accurate and doesn't claim compatibility the way the old
+   FAQ answer did, so no follow-up is needed there.
+
+Also softened the silent-failures FAQ answer to drop the same
+transport-specific "HTTP 200" framing already flagged (and avoided) in
+the flagship page's own Decisions entry, for consistency.
+
+### `/faq`'s answers render via `dangerouslySetInnerHTML`, not MDX
+Unlike the `docs` and `blog` collections, the `faq` collection's `answer`
+field uses Velite's `s.markdown()` (confirmed via its type signature:
+returns a plain `string`), not `s.mdx()` — it's compiled HTML, not a
+compiled MDX component function body. `run()` from `@mdx-js/mdx` doesn't
+apply here; rendering it is a plain `dangerouslySetInnerHTML`, styled via
+Tailwind arbitrary-descendant selectors on the wrapping div rather than
+the `mdx-components.tsx` component-mapping approach the docs pages use.
+This means FAQ answers can't use the custom `Callout`/`CodeBlock`
+components — acceptable for one-line factual answers, which is all this
+collection's schema supports (no code-block-shaped questions in the set
+written).
