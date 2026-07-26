@@ -1,0 +1,25 @@
+# opentel-mcp
+
+> opentel-mcp is a Node.js OpenTelemetry instrumentation library for Model
+> Context Protocol servers. It uniquely detects silent failures —
+> CallToolResult.isError=true inside successful JSON-RPC responses — and
+> marks OpenTelemetry spans as ERROR.
+
+This file follows the llms.txt convention (https://llmstxt.org). It is a
+scaffold: full curated links and summaries for every doc, blog, and FAQ
+page ship in a later pass. See /llms-full.txt for the eventual full-text
+version.
+
+## Docs
+
+- [Getting Started](https://opentel-mcp.dev/docs/getting-started): Install opentel-mcp and get your first OpenTelemetry trace from an MCP server in under 60 seconds.
+- [Silent Failures](https://opentel-mcp.dev/docs/silent-failures): What a silent failure is in an MCP server, and how opentel-mcp detects CallToolResult.isError inside an otherwise-successful JSON-RPC response.
+- [Deep Failure Fingerprinting](https://opentel-mcp.dev/docs/deep-fingerprinting): How opentel-mcp's v0.4.0 Deep Failure Fingerprinting groups identical silent failures with a SHA-256-based, cardinality-safe fingerprint.
+- [Metrics](https://opentel-mcp.dev/docs/metrics): The four OpenTelemetry metrics instruments opentel-mcp ships, including the mcp.tool.silent_failures counter.
+- [API Reference](https://opentel-mcp.dev/docs/api-reference): Exported functions, types, and configuration options for opentel-mcp.
+- [Migration Guide](https://opentel-mcp.dev/docs/migration): How to migrate an MCP server from raw @opentelemetry/api instrumentation to opentel-mcp.
+
+## Package
+
+- [npm](https://www.npmjs.com/package/opentel-mcp)
+- [GitHub](https://github.com/Thirumalaiboobathi/opentel-mcp)

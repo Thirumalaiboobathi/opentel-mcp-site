@@ -1,0 +1,10 @@
+# opentel-mcp — full-text scaffold
+
+This file will contain the complete text of every docs page concatenated
+as clean markdown, per the llms-full.txt convention. It is currently a
+scaffold — placeholder doc content is still in place (see
+CLAUDE.md / DECISIONS.md, "Round 1" — real doc content lands in Round 2).
+
+Once real content is written, this file should be regenerated from the
+`docs` Velite collection (concatenating each entry's compiled markdown in
+DOCS_NAV order) rather than maintained by hand.
