@@ -37,8 +37,10 @@ not the *spec*.
 
 ## Current Phase
 
-Phase 1 complete (scaffold, pipeline, self-hosted fonts, shadcn primitives,
-green build/tsc/lint). About to start Phase 2 (layout shell).
+Phase 2 complete (layout shell: Header, Footer, MobileNav, ThemeProvider/
+ThemeToggle, JSON-LD, Plausible placeholder). Verified in an actual
+browser via Playwright at desktop and mobile widths, not just `pnpm
+build`. About to start Phase 3 (landing page).
 
 ## Deviations From the Brief (log every opinionated call)
 
@@ -56,6 +58,9 @@ an index so a fresh session knows where to look. Summary of Phase 1 calls:
 - Added a real (not filler) `content/faq/faq.mdx` stub sourced from the
   brief's own Phase 6 FAQ list, since Velite's `single: true` faq
   collection fails the build entirely with zero matching files.
+- `lucide-react@1.27.0` ships no brand/logo icons (verified: no `Github`,
+  `Twitter`, etc. in the package). Added `components/icons/GitHubIcon.tsx`
+  (inline SVG) instead.
 
 ## Key File Locations
 
@@ -93,7 +98,9 @@ an index so a fresh session knows where to look. Summary of Phase 1 calls:
 - [x] Phase 1 — Scaffold & pipeline (native pnpm via corepack, ESLint
       flat-config fixed, self-hosted Geist fonts via next/font/local,
       shadcn primitives verified, `pnpm build`/`tsc`/`lint` all green)
-- [ ] Phase 2 — Layout shell
+- [x] Phase 2 — Layout shell (Header, Footer, MobileNav, ThemeProvider,
+      ThemeToggle, JsonLd + Organization/WebSite schema, Plausible
+      placeholder script, skip-to-content link, verified live in browser)
 - [ ] Phase 3 — Landing page
 - [ ] Phase 4 — Docs infrastructure
 - [ ] Phase 5 — Content

@@ -99,3 +99,30 @@ Diffed against the brief's `SITE`/`PACKAGE`/`AUTHOR`/`KEYWORDS` blocks:
 matches verbatim. Existing extras (`testCount`, `upstreamIssue`,
 `upstreamPR`, `NAV_LINKS`, `DOCS_NAV`) restate facts already present in the
 brief's prose and don't conflict with anything — left in place.
+
+## Phase 2 (layout shell)
+
+### `lucide-react@1.27.0` has no `Github`/brand-logo icons — added a custom `GitHubIcon`
+`import { Github } from "lucide-react"` failed `tsc` with "no exported
+member". Verified directly against the installed package (not assumed):
+`lucide-react`'s icon manifest for this version has no `github`,
+`twitter`, or other brand/logo icons at all — this appears to be a real
+upstream change (many icon libraries have dropped trademarked brand marks),
+not a training-data mismatch. Added
+`components/icons/GitHubIcon.tsx` — a small inline SVG using the standard
+GitHub octocat path — and used it everywhere the brief calls for a GitHub
+icon (Header, MobileNav). `Package` (a real lucide icon) continues to
+stand in for the npm link, as it already did.
+
+### Verified layout shell in an actual browser, not just `pnpm build`
+Started the dev server and drove it with Playwright (no project-specific
+run skill existed yet; `chromium-cli` wasn't available in this
+environment, so used `playwright` directly, installed one-off into the
+scratchpad — not added to the repo). Confirmed: sticky/blurred header with
+working nav, GitHub/npm icons, and theme toggle at 1440px; header
+collapsing to just the toggle + hamburger at 375px; the mobile Sheet
+drawer opening with working nav/GitHub/npm links; and the theme toggle
+correctly flipping the `<html>` class between `dark` and `light` with the
+`globals.css` tokens responding correctly in both states. Only console
+output was Plausible's own "ignoring event on localhost" notices — not an
+app error.
