@@ -36,7 +36,7 @@ const FOOTER_COLUMNS = [
       { href: "/about", label: `${AUTHOR.shortName} — ${AUTHOR.role}` },
       { href: AUTHOR.github, label: "GitHub", external: true },
       { href: AUTHOR.linkedin, label: "LinkedIn", external: true },
-      { href: AUTHOR.twitter, label: "Twitter / X", external: true },
+      { href: `mailto:${AUTHOR.email}`, label: "Email", external: true },
     ],
   },
 ] as const;
@@ -52,8 +52,22 @@ export function Footer() {
                 {column.heading}
               </h2>
               <ul className="mt-4 flex flex-col gap-3">
-                {column.links.map((link) =>
-                  "external" in link && link.external ? (
+                {column.links.map((link) => {
+                  const isMailto = link.href.startsWith("mailto:");
+                  if (isMailto) {
+                    return (
+                      <li key={link.label}>
+                        <a
+                          href={link.href}
+                          rel="noopener"
+                          className="text-sm text-muted-foreground hover:text-foreground"
+                        >
+                          {link.label}
+                        </a>
+                      </li>
+                    );
+                  }
+                  return "external" in link && link.external ? (
                     <li key={link.label}>
                       <a
                         href={link.href}
@@ -73,8 +87,8 @@ export function Footer() {
                         {link.label}
                       </Link>
                     </li>
-                  )
-                )}
+                  );
+                })}
               </ul>
             </div>
           ))}

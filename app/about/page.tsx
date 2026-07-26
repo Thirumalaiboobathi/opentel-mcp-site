@@ -101,6 +101,26 @@ export default function AboutPage() {
             </li>
             <li>
               <a
+                href={AUTHOR.linkedin}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-brand hover:underline"
+              >
+                LinkedIn
+              </a>
+            </li>
+            <li>
+              <a
+                href={AUTHOR.awsBuilderCentre}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-brand hover:underline"
+              >
+                AWS Builder Centre
+              </a>
+            </li>
+            <li>
+              <a
                 href={PACKAGE.github}
                 target="_blank"
                 rel="noopener noreferrer"
@@ -119,18 +139,22 @@ export default function AboutPage() {
                 {PACKAGE.name} on npm
               </a>
             </li>
-            <li>
-              LinkedIn — <span className="text-text-tertiary">{AUTHOR.linkedin}</span> (placeholder, to be filled in)
-            </li>
-            <li>
-              Twitter / X — <span className="text-text-tertiary">{AUTHOR.twitter}</span> (placeholder, to be filled in)
-            </li>
-            <li>
-              AWS Builder Centre — <span className="text-text-tertiary">{AUTHOR.awsBuilderCentre}</span> (placeholder, to be filled in)
-              {/* VERIFY: exact AWS Builder Centre profile URL — ask the
-                  user, do not guess. */}
-            </li>
           </ul>
+
+          <h2 className="mt-10 text-xl font-semibold tracking-tight text-foreground">
+            Get in touch
+          </h2>
+          <p className="mt-4 text-muted-foreground">
+            <a
+              href={`mailto:${AUTHOR.email}`}
+              rel="noopener"
+              className="text-brand hover:underline"
+            >
+              {AUTHOR.email}
+            </a>
+            . LinkedIn is generally the faster way to reach{" "}
+            {AUTHOR.shortName}.
+          </p>
         </div>
       </div>
     </>
