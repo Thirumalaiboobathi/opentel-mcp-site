@@ -1,29 +1,112 @@
 ---
 slug: "getting-started"
 title: "Getting Started"
-description: "Install opentel-mcp and get your first OpenTelemetry trace from an MCP server in under 60 seconds."
+description: "Install opentel-mcp, wrap an MCP server with instrumentMcpServer(), and see your first OpenTelemetry trace — real, tested quickstart code."
 section: "Introduction"
 order: 0
 datePublished: "2026-07-26"
 dateModified: "2026-07-26"
+author: "Thirumalaiboobathi B"
 ---
 
-<Callout variant="info" title="Coming soon">
-  Full getting-started content ships in Round 2. This page exercises the
-  real docs rendering pipeline — MDX, callouts, and code blocks — with
-  placeholder copy.
+opentel-mcp instruments a Model Context Protocol (MCP) server with one
+function call: `instrumentMcpServer(server, options)`. This page walks
+through installing the package, wrapping a minimal MCP server, and
+seeing a real OpenTelemetry trace print to your terminal — the same
+30-second quickstart from opentel-mcp's own README, copied verbatim so
+what's here is exactly what's tested and shipped.
+
+<Callout variant="tip" title="TL;DR">
+  `npm install opentel-mcp @opentelemetry/api`, call
+  `instrumentMcpServer(server, { serviceName: '...', setupNodeSdk: true })`
+  before registering any tools, then register tools as usual. With
+  `setupNodeSdk: true` you get traces printed to your terminal
+  immediately — no collector, no dashboard, nothing else to configure.
 </Callout>
 
-This guide will walk through installing opentel-mcp, wrapping an MCP
-server, and viewing your first trace.
+## What do I need before I start?
 
-## Install
+An MCP server built on `@modelcontextprotocol/sdk` — either the
+high-level `McpServer` or the low-level `Server` class. The quickstart
+below uses `McpServer`, `StdioServerTransport`, and `zod` (for the
+example tool's input schema); install whichever of those your project
+doesn't already have alongside opentel-mcp itself:
 
 ```bash
-pnpm add opentel-mcp
+npm install opentel-mcp @opentelemetry/api
 ```
 
-## Next steps
+opentel-mcp is an ES module — add `"type": "module"` to your
+`package.json` if it isn't there already.
 
-Full walkthrough content lands in Round 2, alongside the rest of the
-docs.
+## How do I instrument my server?
+
+Call `instrumentMcpServer()` on your server **before** registering any
+tools — before any `.tool()`/`.registerTool()` call on `McpServer`, or
+before `server.setRequestHandler(CallToolRequestSchema, ...)` on a
+low-level `Server`. Registering a tool first means that handler was
+never wrapped; see [API Reference](/docs/api-reference) for the full
+`InstrumentOptions` reference.
+
+```js
+import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
+import { instrumentMcpServer } from 'opentel-mcp';
+import { z } from 'zod';
+
+const server = new McpServer({ name: 'my-server', version: '1.0.0' });
+
+// Wraps every tool registered below. Must run BEFORE server.tool() —
+// see the ordering note above for why.
+instrumentMcpServer(server, {
+  serviceName: 'my-mcp-server', // shows up on your traces
+  setupNodeSdk: true, // dev mode: prints traces to your terminal
+});
+
+// A normal tool, registered exactly as usual.
+server.tool('echo', { text: z.string() }, async ({ text }) => ({
+  content: [{ type: 'text', text: `you said: ${text}` }],
+}));
+
+const transport = new StdioServerTransport();
+await server.connect(transport);
+```
+
+That's the whole integration. `setupNodeSdk: true` is a dev-mode
+convenience — it creates and registers a `NodeTracerProvider` for you
+that prints spans to stderr, so there's nothing else to wire up to see
+this working locally. In production, register your own `TracerProvider`
+(pointed at SigNoz, Jaeger, Honeycomb, or any OTLP-compatible backend)
+and leave `setupNodeSdk` unset — opentel-mcp picks up whatever provider
+your application already registered.
+
+## How do I see the trace?
+
+Run the snippet above and call the `echo` tool once. This is a real,
+captured run from opentel-mcp's own README — not a synthesized example:
+
+```text
+name: 'tools/call echo'
+kind: 1                    // SpanKind.SERVER
+status: { code: 1 }        // OK
+attributes: {
+  'mcp.method.name': 'tools/call',
+  'gen_ai.tool.name': 'echo',
+  'mcp.tool.argument_count': 1,
+  'jsonrpc.request.id': '1'
+}
+```
+
+No dashboard needed for this — `setupNodeSdk: true`'s dev exporter
+printed this directly to your terminal. Point a real backend at
+`exporterUrl` (or register your own provider) once you're ready to move
+past local development.
+
+## Where do I go from here?
+
+- [Silent Failures](/docs/silent-failures) — what changes on this same
+  span when a tool call returns `isError: true` instead of succeeding.
+- [Metrics](/docs/metrics) — register a `MeterProvider` alongside the
+  tracer above to get the four `mcp.tool.*` instruments too.
+- [Migration Guide](/docs/migration) — already have `@opentelemetry/api`
+  instrumentation on your MCP server? Start here instead.
