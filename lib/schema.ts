@@ -153,7 +153,12 @@ export function buildPersonSchema() {
       addressLocality: AUTHOR.location,
     },
     url: `${SITE.url}/about`,
-    sameAs: [AUTHOR.github, AUTHOR.linkedin, AUTHOR.twitter].filter(
+    sameAs: [
+      AUTHOR.github,
+      AUTHOR.linkedin,
+      AUTHOR.twitter,
+      AUTHOR.awsBuilderCentre,
+    ].filter(
       (url) => !url.endsWith("_URL")
     ),
   } as const;

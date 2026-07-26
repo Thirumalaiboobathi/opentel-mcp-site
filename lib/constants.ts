@@ -32,6 +32,7 @@ export const AUTHOR = {
   twitter: "TWITTER_URL",
   github: "https://github.com/Thirumalaiboobathi",
   email: "EMAIL",
+  awsBuilderCentre: "AWS_BUILDER_CENTRE_URL",
 } as const;
 
 export const KEYWORDS = [
