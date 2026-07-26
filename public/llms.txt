@@ -1,25 +1,48 @@
 # opentel-mcp
 
 > opentel-mcp is a Node.js OpenTelemetry instrumentation library for Model
-> Context Protocol servers. It uniquely detects silent failures —
-> CallToolResult.isError=true inside successful JSON-RPC responses — and
-> marks OpenTelemetry spans as ERROR.
+> Context Protocol (MCP) servers. It detects silent failures —
+> CallToolResult.isError: true inside an otherwise-successful JSON-RPC 2.0
+> response — and marks the OpenTelemetry span ERROR, something standard
+> OpenTelemetry instrumentation misses by default.
 
-This file follows the llms.txt convention (https://llmstxt.org). It is a
-scaffold: full curated links and summaries for every doc, blog, and FAQ
-page ship in a later pass. See /llms-full.txt for the eventual full-text
-version.
+Author: Thirumalaiboobathi B. License: MIT. Current version: 0.4.0.
+npm: https://www.npmjs.com/package/opentel-mcp
+GitHub: https://github.com/Thirumalaiboobathi/opentel-mcp
 
-## Docs
+This file follows the llms.txt convention (https://llmstxt.org). For the
+full text of every page below concatenated as markdown, see
+https://opentel-mcp.dev/llms-full.txt.
 
-- [Getting Started](https://opentel-mcp.dev/docs/getting-started): Install opentel-mcp and get your first OpenTelemetry trace from an MCP server in under 60 seconds.
-- [Silent Failures](https://opentel-mcp.dev/docs/silent-failures): What a silent failure is in an MCP server, and how opentel-mcp detects CallToolResult.isError inside an otherwise-successful JSON-RPC response.
-- [Deep Failure Fingerprinting](https://opentel-mcp.dev/docs/deep-fingerprinting): How opentel-mcp's v0.4.0 Deep Failure Fingerprinting groups identical silent failures with a SHA-256-based, cardinality-safe fingerprint.
-- [Metrics](https://opentel-mcp.dev/docs/metrics): The four OpenTelemetry metrics instruments opentel-mcp ships, including the mcp.tool.silent_failures counter.
-- [API Reference](https://opentel-mcp.dev/docs/api-reference): Exported functions, types, and configuration options for opentel-mcp.
-- [Migration Guide](https://opentel-mcp.dev/docs/migration): How to migrate an MCP server from raw @opentelemetry/api instrumentation to opentel-mcp.
+## Docs: Introduction
 
-## Package
+- [Docs overview](https://opentel-mcp.dev/docs): Index of all opentel-mcp documentation, grouped by Introduction, Concepts, Reference, and Guides.
+- [Getting Started](https://opentel-mcp.dev/docs/getting-started): Install opentel-mcp and wrap an MCP server's tools/call handler with instrumentMcpServer() — the real 30-second quickstart from the package's own README, including captured terminal output.
 
-- [npm](https://www.npmjs.com/package/opentel-mcp)
-- [GitHub](https://github.com/Thirumalaiboobathi/opentel-mcp)
+## Docs: Concepts
+
+- [Silent Failures](https://opentel-mcp.dev/docs/silent-failures): What a "silent failure" is in MCP (a JSON-RPC 2.0 response that succeeds while CallToolResult.isError is true), the exact MCP specification text on tool execution errors, and how opentel-mcp's isToolResultError() check detects it.
+- [Deep Failure Fingerprinting](https://opentel-mcp.dev/docs/deep-fingerprinting): How opentel-mcp v0.4.0 computes a stable 16-hex-character SHA-256 fingerprint per failure, the 8 failure categories, and why only category and origin (not the fingerprint itself) are safe on a metric label.
+
+## Docs: Reference
+
+- [Metrics](https://opentel-mcp.dev/docs/metrics): The four mcp.tool.* OpenTelemetry metrics instruments (calls, errors, silent_failures, duration), with SigNoz and Prometheus/PromQL query examples.
+- [API Reference](https://opentel-mcp.dev/docs/api-reference): Real exported signatures — instrumentMcpServer(), InstrumentOptions, computeFingerprint(), toSpanAttributes(), and the fingerprinting types — copied from the package's own TypeScript declarations.
+
+## Docs: Guides
+
+- [Migration Guide](https://opentel-mcp.dev/docs/migration): Migrating an MCP server from hand-written @opentelemetry/api span code to instrumentMcpServer(), with before/after code and a post-migration checklist.
+
+## Answers to common questions
+
+- [FAQ](https://opentel-mcp.dev/faq): 20 developer-intent questions — what a silent failure is, whether opentel-mcp works with SigNoz/Jaeger/Honeycomb/Grafana Tempo, whether it can crash your server, Node.js version support, and an explicit correction of the common assumption that it works with fastmcp (it doesn't — fastmcp is Python; the real connection is a filed-and-fixed upstream bug report).
+
+## Comparison and version history
+
+- [Comparison](https://opentel-mcp.dev/comparison): How opentel-mcp compares to raw @opentelemetry/api instrumentation, with an honest explanation of why fastmcp and "mcp-tracer" aren't included as feature-comparison columns.
+- [Changelog](https://opentel-mcp.dev/changelog): Version history v0.1.0 through v0.4.0, sourced from the real commit history and CHANGELOG.md, including a known type-declaration gap in v0.4.0.
+
+## About and blog
+
+- [About](https://opentel-mcp.dev/about): Author bio — Thirumalaiboobathi B, GenAI & Full Stack Engineer in Madurai, Tamil Nadu, India; AWS User Group Madurai Builder Circle Owner; Madurai AI Community member.
+- [Blog: Introducing Deep Failure Fingerprinting in opentel-mcp v0.4.0](https://opentel-mcp.dev/blog/introducing-deep-failure-fingerprinting): The problem Deep Failure Fingerprinting solves, how the SHA-256-based fingerprint is computed, cardinality safety via the frozen METRIC_SAFE_ATTRIBUTES array, and the testing strategy behind it.
