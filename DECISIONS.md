@@ -171,3 +171,76 @@ so both swap in lockstep. This was a real, verified bug (unrelated to the
 cache corruption) — a legitimate case for the browser check even though
 the tooling around it turned out to be unreliable for anything beyond
 one-off diagnosis.
+
+## Round 1 (Phase 4 docs infrastructure + Phase 7 SEO scaffold)
+
+### MDX rendering: `@mdx-js/mdx`'s `run()` over Velite's compiled `s.mdx()` output
+Velite's `s.mdx()` schema field compiles each doc's MDX body to a
+function-body code string (confirmed via its type signature — plain
+`string`, not a pre-rendered component). The documented way to execute
+that is `run(code, { ...productionJsxRuntime, baseUrl })` from
+`@mdx-js/mdx` (already a project dependency), which does an in-process
+`eval` of the compiled output inside a server component. Wrapped this in
+`lib/mdx.tsx` (`renderMDX`) and pass `mdxComponents` (Callout, CodeBlock,
+styled headings/links/lists) so custom components work inside MDX bodies.
+
+### CodeBlock reads rehype-pretty-code's output rather than running Shiki at runtime
+`velite.config.ts` already runs `rehype-pretty-code` (Shiki, theme
+`github-dark`, `keepBackground: true`) over every fenced code block at
+*build* time, producing already-highlighted `<pre data-language="…">
+<code>…</code></pre>` markup baked into the compiled MDX. `CodeBlock.tsx`
+is the `pre` override in `mdx-components.tsx` — it doesn't re-highlight
+anything; it reads `data-language` off the child `<code>` element for the
+badge, walks the children tree to extract plain text for the copy button,
+and adds the chrome (header bar, border, copy button) around the already-
+highlighted output. `figcaption` (rehype-pretty-code's title/filename
+feature, e.g. ` ```ts title="foo.ts" `) gets its own small mapping to
+render as a filename tab bar above the code block.
+
+### Inline `code` styling done via CSS, not an MDX component override
+Initially mapped `code` in `mdx-components.tsx` to a styled inline-code
+component (background, padding, mono font) — but MDX component mapping
+applies to *every* `code` element uniformly, including the `<code>` that
+rehype-pretty-code nests inside `<pre>` for fenced blocks. That would
+have doubled-up the styling inside every code block (padding-in-padding,
+a background tint on top of Shiki's own background). Removed the `code`
+mapping entirely and instead added a scoped CSS rule in `globals.css`
+(`.prose-content :not(pre) > code { … }`) that only touches genuinely
+inline code, leaving fenced blocks to `CodeBlock`'s own styling
+untouched.
+
+### `mcp-tracer` docs, faq — no change needed
+`content/faq/faq.mdx` already existed from Phase 1 with real content
+(brief's own Phase 6 FAQ list) — untouched this round.
+
+### Metadata-route static-export requirement: `export const dynamic = "force-static"`
+`app/sitemap.ts`, `app/robots.ts`, `app/manifest.ts`, and both
+`opengraph-image.tsx` files (root and `app/docs/[slug]/`) all failed
+`pnpm build` with "Failed to collect page data" under `output: 'export'`
+until each got an explicit `export const dynamic = "force-static"`. Not
+mentioned in the brief; discovered by iterating on real build errors.
+Logged here so it isn't rediscovered per-file in a later phase (e.g. when
+a `changelog`/`blog` RSS feed or additional metadata route gets added).
+
+### `SITE.repoUrl` added as an explicit placeholder for "Edit this page on GitHub"
+The brief's per-doc "Edit this page on GitHub" link needs this
+marketing site's own repo URL — not `PACKAGE.github`, which points at
+the npm package's repo (a different GitHub project entirely). No such
+constant existed. Added `SITE.repoUrl = "SITE_REPO_URL"`, matching the
+existing placeholder convention (`AUTHOR.linkedin`, `AUTHOR.twitter`,
+`AUTHOR.email`) rather than guessing a URL.
+
+### `buildPersonSchema()` filters out placeholder URLs
+`AUTHOR.linkedin`/`AUTHOR.twitter` are still literal placeholder strings
+(`"LINKEDIN_URL"`, `"TWITTER_URL"`). `buildPersonSchema()`'s `sameAs`
+array filters out anything ending in `_URL` so the `/about` page's future
+`Person` JSON-LD doesn't ship broken/junk URLs before those placeholders
+are replaced with real profile links.
+
+### Favicon/OG static assets not created — flagged, not blocking
+`app/manifest.ts` references `favicon-16x16.png`, `favicon-32x32.png`,
+and `apple-touch-icon.png`; none exist in `public/` yet. This is a
+design-asset task (someone needs to actually produce/export icon files),
+not something to fabricate as placeholder binaries. `pnpm build` doesn't
+validate referenced-but-missing public assets, so this doesn't block the
+build — flagged in `CLAUDE.md` so it isn't forgotten before launch.

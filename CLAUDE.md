@@ -37,10 +37,13 @@ not the *spec*.
 
 ## Current Phase
 
-Phase 3 complete (landing page: all 9 sections). Verified via clean
-`pnpm build` producing `out/index.html` — see "Lessons" below for why
-that's the verification of record here, not live browser checks. About
-to start Phase 4 (docs infrastructure).
+Round 1 complete: Phase 4 (docs infrastructure) + Phase 7 scaffold
+(SEO/AEO plumbing, no content yet). Verified via clean `pnpm build`
+producing all 21 routes in `out/`. Explicitly paused here per user
+direction — Phase 5 (content) needs a voice-alignment pass on the
+flagship silent-failures page before writing the rest of the docs.
+Round 2 (real doc content) and Round 3 (llms.txt/llms-full.txt full
+curation) are queued but not started.
 
 ## Lessons
 
@@ -92,6 +95,23 @@ an index so a fresh session knows where to look. Summary of Phase 1 calls:
 - `lucide-react@1.27.0` ships no brand/logo icons (verified: no `Github`,
   `Twitter`, etc. in the package). Added `components/icons/GitHubIcon.tsx`
   (inline SVG) instead.
+- Velite's `s.slug("docs")` requires an explicit `slug` frontmatter field
+  per file — it does not auto-derive from filename. All `content/docs/
+  *.mdx` files set `slug` explicitly.
+- `app/sitemap.ts`, `app/robots.ts`, `app/manifest.ts`, and both
+  `opengraph-image.tsx` files all require `export const dynamic =
+  "force-static"` under `output: 'export'` — Next.js errors at build
+  time ("Failed to collect page data") without it on every one of these
+  special metadata route types.
+- Added `SITE.repoUrl` as an explicit placeholder (`"SITE_REPO_URL"`,
+  same convention as `AUTHOR.linkedin`/`AUTHOR.twitter`) for "Edit this
+  page on GitHub" links — distinct from `PACKAGE.github`, which is the
+  npm package's own repo, not this marketing site's.
+- Favicon/OG static image assets (`favicon-16x16.png`, `apple-touch-
+  icon.png`, etc.) referenced by `app/manifest.ts` don't exist yet —
+  that's a design-asset task, not code scaffolding. `pnpm build` doesn't
+  validate their existence, so this doesn't block the build, but real
+  files are needed before the icons will actually load.
 
 ## Key File Locations
 
@@ -136,7 +156,14 @@ an index so a fresh session knows where to look. Summary of Phase 1 calls:
       ProblemStatement, Features, HowItWorks, ComparisonTable,
       InstallSection, SocialProof, CTA — verified via clean static
       export, see "Lessons" for why)
-- [ ] Phase 4 — Docs infrastructure
-- [ ] Phase 5 — Content
+- [x] Phase 4 — Docs infrastructure (DocsSidebar + mobile drawer, 3/2/1-col
+      layout, scroll-spy TOC, CodeBlock w/ Shiki+copy+language badge,
+      Callout, MDX render pipeline, 6 placeholder doc routes w/
+      TechArticle+BreadcrumbList JSON-LD — real content is Round 2)
+- [ ] Phase 5 — Content (paused: need to align on flagship
+      silent-failures page voice before writing docs content)
 - [ ] Phase 6 — FAQ/Comparison/Changelog/About/Blog
-- [ ] Phase 7 — SEO + AEO layer
+- [~] Phase 7 — SEO + AEO layer (scaffold done: sitemap, robots w/ 12
+      AI-bot allow-list, manifest, dynamic OG images (root + per-doc),
+      full lib/schema.ts builder set, lib/metadata.ts, llms.txt/
+      llms-full.txt scaffolds — llms.txt full curation is Round 3)
