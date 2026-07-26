@@ -1,21 +1,146 @@
 ---
 slug: "metrics"
 title: "Metrics"
-description: "The four OpenTelemetry metrics instruments opentel-mcp ships, including the mcp.tool.silent_failures counter, with Grafana and SigNoz query examples."
+description: "The four mcp.tool.* OpenTelemetry metrics opentel-mcp emits — calls, errors, silent_failures, and duration — with SigNoz and Prometheus query examples."
 section: "Reference"
 order: 0
 datePublished: "2026-07-26"
 dateModified: "2026-07-26"
+author: "Thirumalaiboobathi B"
 ---
 
-<Callout variant="info" title="Coming soon">
-  Full instrument reference and query examples ship in Round 2.
+opentel-mcp emits four OpenTelemetry metrics instruments through
+`@opentelemetry/api`'s Metrics API: `mcp.tool.calls`, `mcp.tool.errors`,
+`mcp.tool.silent_failures`, and `mcp.tool.duration`. All four come from
+`src/metrics.js`'s `setupMeter()`, recorded from the same
+[`isToolResultError()`](/docs/silent-failures) check that marks spans
+`ERROR`, so the metric and the trace never disagree about whether a call
+failed.
+
+<Callout variant="tip" title="TL;DR">
+  Four instruments, all under the `mcp.tool.*` namespace:
+  `mcp.tool.calls` (every call), `mcp.tool.errors` (thrown/rejected),
+  `mcp.tool.silent_failures` (`isError: true`), and `mcp.tool.duration`
+  (histogram, milliseconds). Nothing is recorded until your application
+  registers an OpenTelemetry `MeterProvider` — until then, recording
+  through these instruments is a zero-overhead no-op, the default
+  `@opentelemetry/api` behavior.
 </Callout>
 
-opentel-mcp ships four OpenTelemetry metrics instruments, including:
+## What are the four instruments?
 
-```text
-mcp.tool.silent_failures
+| Metric | Type | Unit | Attributes | Emitted when |
+|---|---|---|---|---|
+| `mcp.tool.calls` | Counter | — | `gen_ai.tool.name`, `mcp.method.name` | Every tool call, regardless of outcome |
+| `mcp.tool.errors` | Counter | — | `gen_ai.tool.name`, `error.type`[^1] | Handler threw or its promise rejected |
+| `mcp.tool.silent_failures` | Counter | — | `gen_ai.tool.name`[^1] | Result had `isError: true` |
+| `mcp.tool.duration` | Histogram | ms | `gen_ai.tool.name`, `mcp.tool.outcome`[^1] | Every call, on completion |
+
+[^1]: Also carries `mcp.failure.category` when [Deep Failure Fingerprinting](/docs/deep-fingerprinting) classified the failure — see that page for the 8 categories.
+
+`mcp.tool.duration`'s `mcp.tool.outcome` attribute is one of `success`,
+`error`, or `silent_failure` — the same three-way split as the
+instrument names, but on a single histogram so you can compare call
+latency across all three outcomes without joining against `error.type`
+(which silent failures don't set on the duration metric).
+
+## Why is `mcp.tool.silent_failures` a separate counter from `mcp.tool.errors`?
+
+Because they're different failure modes and mixing them into one counter
+would hide which one is happening. `mcp.tool.errors` counts handlers that
+threw or rejected — a JavaScript-level exception. `mcp.tool.silent_failures`
+counts handlers that returned normally with `CallToolResult.isError:
+true` — see [Silent Failures](/docs/silent-failures) for why that case is
+easy to miss entirely without this counter. A tool that's failing by
+throwing and a tool that's failing by returning `isError: true` usually
+point at different bugs; a single alert on both would tell you *that*
+something's wrong but not *what*.
+
+## Do I need to configure anything to get these?
+
+No setup beyond registering a `MeterProvider` somewhere in your
+application — `instrumentMcpServer()` doesn't create one for you (unlike
+its tracing side, which can optionally create its own `NodeTracerProvider`
+via `setupNodeSdk: true`). Set `enableMetrics: false` in
+[`instrumentMcpServer()`'s options](/docs/api-reference) to opt out of
+metrics specifically while keeping tracing; tracing has no equivalent
+metrics-only switch since it isn't one.
+
+## How do I query these in SigNoz?
+
+<Callout variant="warning" title="Illustrative">
+  The wiring code below is real — copied from opentel-mcp's own README.
+  The query text is illustrative: it shows the shape of a useful query
+  against these metric names, not a query captured from a live SigNoz
+  instance.
+</Callout>
+
+Wiring a `MeterProvider` that exports to SigNoz's default local OTLP/HTTP
+endpoint:
+
+```js
+import { metrics } from '@opentelemetry/api';
+import { MeterProvider, PeriodicExportingMetricReader } from '@opentelemetry/sdk-metrics';
+import { OTLPMetricExporter } from '@opentelemetry/exporter-metrics-otlp-http';
+import { resourceFromAttributes } from '@opentelemetry/resources';
+
+const meterProvider = new MeterProvider({
+  resource: resourceFromAttributes({ 'service.name': 'my-mcp-server' }),
+  readers: [
+    new PeriodicExportingMetricReader({
+      exporter: new OTLPMetricExporter({ url: 'http://localhost:4318/v1/metrics' }),
+    }),
+  ],
+});
+metrics.setGlobalMeterProvider(meterProvider);
 ```
 
-Grafana and SigNoz query examples land in Round 2.
+With that registered before `instrumentMcpServer()` runs, a SigNoz
+dashboard panel querying `mcp.tool.silent_failures` grouped by
+`gen_ai.tool.name` shows which tools are failing silently, and how often,
+without opening a single trace.
+
+## How do I export these to Prometheus?
+
+Register a Prometheus exporter as the `MeterProvider`'s reader instead of
+an OTLP one — nothing about `instrumentMcpServer()` changes:
+
+```js
+import { metrics } from '@opentelemetry/api';
+import { MeterProvider } from '@opentelemetry/sdk-metrics';
+import { PrometheusExporter } from '@opentelemetry/exporter-prometheus';
+
+const meterProvider = new MeterProvider({
+  readers: [new PrometheusExporter({ port: 9464 })],
+});
+metrics.setGlobalMeterProvider(meterProvider);
+```
+
+{/* VERIFY: @opentelemetry/exporter-prometheus is a standard OTel JS
+exporter package, but confirm its exact current API (constructor options,
+default port) against the version your project pins — it's not an
+opentel-mcp dependency, so it isn't covered by this package's own
+source. */}
+
+OpenTelemetry's Prometheus exporter converts metric names by replacing
+`.` with `_` and appending `_total` to counters, so
+`mcp.tool.silent_failures` becomes `mcp_tool_silent_failures_total` in
+PromQL:
+
+```promql
+sum(rate(mcp_tool_silent_failures_total[5m])) by (gen_ai_tool_name)
+```
+
+That gives a per-tool silent-failure rate over a 5-minute window — a
+reasonable starting alert query, tune the window and threshold to your
+own traffic.
+
+## Where do I go from here?
+
+- [Silent Failures](/docs/silent-failures) — what `isError: true` means
+  and why `mcp.tool.silent_failures` exists at all.
+- [Deep Failure Fingerprinting](/docs/deep-fingerprinting) — the
+  `mcp.failure.category` attribute these metrics carry when
+  fingerprinting classifies a failure.
+- [API Reference](/docs/api-reference) — `enableMetrics` and the rest of
+  `instrumentMcpServer()`'s options.
