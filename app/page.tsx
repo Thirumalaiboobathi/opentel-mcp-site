@@ -1,15 +1,25 @@
-import { SITE } from "@/lib/constants";
+import { ComparisonTable } from "@/components/landing/ComparisonTable";
+import { CTA } from "@/components/landing/CTA";
+import { Features } from "@/components/landing/Features";
+import { Hero } from "@/components/landing/Hero";
+import { HowItWorks } from "@/components/landing/HowItWorks";
+import { InstallSection } from "@/components/landing/InstallSection";
+import { ProblemStatement } from "@/components/landing/ProblemStatement";
+import { SocialProof } from "@/components/landing/SocialProof";
+import { TrustBar } from "@/components/landing/TrustBar";
 
 export default function Home() {
   return (
-    <div className="mx-auto flex w-full max-w-[1200px] flex-1 flex-col items-start justify-center px-4 py-24 sm:px-6 lg:px-8">
-      <p className="font-mono text-sm text-brand">{SITE.name}</p>
-      <h1 className="mt-4 max-w-2xl text-4xl font-semibold tracking-tight text-foreground sm:text-5xl">
-        {SITE.tagline}
-      </h1>
-      <p className="mt-4 max-w-xl text-lg text-muted-foreground">
-        Landing page content ships in Phase 3.
-      </p>
-    </div>
+    <>
+      <Hero />
+      <TrustBar />
+      <ProblemStatement />
+      <Features />
+      <HowItWorks />
+      <ComparisonTable />
+      <InstallSection />
+      <SocialProof />
+      <CTA />
+    </>
   );
 }
