@@ -1,26 +1,195 @@
 ---
 slug: "deep-fingerprinting"
 title: "Deep Failure Fingerprinting"
-description: "How opentel-mcp's v0.4.0 Deep Failure Fingerprinting groups identical silent failures with a SHA-256-based, cardinality-safe fingerprint."
+description: "How opentel-mcp v0.4.0 groups identical failures with a SHA-256-based, 16-hex-char fingerprint, and why it's structurally cardinality-safe."
 section: "Concepts"
 order: 1
 datePublished: "2026-07-26"
 dateModified: "2026-07-26"
+author: "Thirumalaiboobathi B"
 ---
 
-<Callout variant="info" title="Coming soon">
-  Full content on SHA-256 truncation, METRIC_SAFE_ATTRIBUTES, and the
-  fallback fingerprint ships in Round 2.
+Deep Failure Fingerprinting, shipped in opentel-mcp v0.4.0, computes a
+stable 16-character identifier for every thrown error and every
+[silent failure](/docs/silent-failures) (`isError: true`), so ten calls
+that fail the same underlying way — even with different user IDs,
+timestamps, or UUIDs in the error message — group under one fingerprint
+instead of showing up as ten unrelated errors. It runs synchronously,
+locally, with no network call, and never throws.
+
+<Callout variant="tip" title="TL;DR">
+  Every failure gets a `mcp.failure.fingerprint` (16 hex chars, SHA-256
+  truncated), a human-readable `mcp.failure.signature`
+  (`errorClass@fn:line`), and one of 8 `mcp.failure.category` values.
+  Fingerprinting is on by default (`fingerprinting: true`) and can't
+  throw — if anything about it fails internally, it falls back to a
+  fixed identity (`0000000000000000`) rather than breaking the tool call
+  it's instrumenting.
 </Callout>
 
-Deep Failure Fingerprinting, shipped in v0.4.0, hashes failure content
-with SHA-256, truncated to 16 hex characters.
+## How is the fingerprint computed?
 
-```ts
-fingerprint: "a1b2c3d4e5f6a7b8"
+`computeFingerprint()` hashes a small set of normalized inputs — not the
+raw error message or raw stack trace, which would defeat grouping the
+moment a UUID or timestamp changed between two otherwise-identical
+failures:
+
+```text
+v1|<errorClass>|<category>|<origin>|<toolName>|<normalizedMessage>|<stackSignature>
 ```
 
-## Never throws
+`errorClass` is the error's constructor name (`"TypeError"`,
+`"ZodError"`, or `"MCPToolError"` for a tool-level `isError: true` result
+with no thrown exception behind it). `category` is one of the 8 buckets
+below. `origin` is `tool_error`, `thrown`, or `transport`. The message
+and stack trace go through a normalization pass first — stripping
+UUIDs, timestamps, and similar high-cardinality noise — before being
+folded into the hash, which is exactly what makes two failures with
+different incidental details still hash identically.
 
-Fingerprinting falls back to a fixed value (`0000000000000000`) rather
-than raising an exception.
+That versioned string is hashed with SHA-256 and truncated to the first
+16 hex characters:
+
+```js
+// src/fingerprint/hash.js
+export function hashInputs(input) {
+  return createHash('sha256').update(input, 'utf8').digest('hex').slice(0, 16);
+}
+```
+
+The package's own reasoning for that specific choice, from the source:
+SHA-256 is native to Node's `crypto` module and fast enough to stay well
+inside a p99 < 200µs budget for the whole pipeline; 64 bits of hash gives
+roughly 1-in-4-billion collision odds at 100,000 unique fingerprints,
+which is enough for grouping errors, not a security property; truncating
+a cryptographic hash for identity purposes (not security) is a
+recognized practice; and adding a dependency like xxhash or murmurhash
+for a small speed gain wasn't worth it for a package that otherwise has
+none.
+
+## What are the 8 failure categories?
+
+Classification runs through seven ordered classifiers — the first one
+that matches wins, and `internal` is a catch-all that always matches, so
+it has to run last:
+
+1. `validation` — bad input (Zod/Joi/Yup-shaped errors, "invalid"/"required" wording)
+2. `timeout` — an operation timed out (`TimeoutError`, `ETIMEDOUT`, ...)
+3. `network` — a connection failed (`ECONNREFUSED`, `FetchError`, ...)
+4. `auth` — 401/403, "unauthorized"/"forbidden" wording
+5. `dependency` — a downstream service or package failed (a database driver, an SDK, ...)
+6. `serialization` — malformed JSON, "unexpected token" wording
+7. `internal` — nothing more specific matched; the catch-all
+
+An 8th value, `unknown`, isn't one of the seven classifiers — it's what
+`computeFingerprint()` itself falls back to if the whole pipeline hits an
+internal error (see "What happens if fingerprinting itself fails?"
+below), or what a *custom* classifier list falls back to if it omits
+`internal`.
+
+Order matters: a timeout error whose message happens to mention
+"network" still classifies as `timeout`, because the `timeout`
+classifier runs before the `network` one.
+
+## What does a fingerprinted span look like?
+
+<Callout variant="warning" title="Illustrative">
+  Real attribute names and values from `src/fingerprint/attributes.js`,
+  shaped the way a trace viewer would display them — not a literal
+  capture from a running instance.
+</Callout>
+
+```json
+{
+  "mcp.failure.fingerprint": "a3f4c8e2b1d09f77",
+  "mcp.failure.signature": "TimeoutError@fetchUpstream:42",
+  "mcp.failure.category": "timeout",
+  "mcp.failure.origin": "tool_error",
+  "mcp.failure.error_class": "TimeoutError"
+}
+```
+
+`mcp.failure.signature` is built as `` `${errorClass}@${topFrame.fn}:${topFrame.line}` ``,
+truncated to 60 characters — human-readable enough to recognize at a
+glance, without embedding the full stack.
+
+## Why don't these attributes go on the metrics?
+
+Because most of them are unbounded or close to it, and a metric label
+that's unbounded turns every distinct value into its own permanent time
+series — a well-known way to blow up a metrics backend's cardinality.
+`mcp.failure.fingerprint` and `mcp.failure.signature` are effectively
+unbounded (a new bug is a new fingerprint, forever); `mcp.failure.error_class`
+is medium-cardinality and still risky. Only `category` (8 values) and
+`origin` (3 values) are small, closed enums — 24 combinations, maximum —
+so they're the only two safe to attach to a counter or histogram label.
+
+opentel-mcp enforces this structurally, not by convention. `src/metrics.js`
+can only reach a fingerprint-derived value through one array:
+
+```js
+// src/fingerprint/attributes.js
+export const METRIC_SAFE_ATTRIBUTES = Object.freeze([
+  ATTRIBUTE_KEYS.CATEGORY, // 'mcp.failure.category'
+  ATTRIBUTE_KEYS.ORIGIN,   // 'mcp.failure.origin'
+]);
+```
+
+There's no code path today that lets `fingerprint`, `signature`, or
+`error_class` reach a metric label — not a lint rule or a code-review
+convention, an actual missing code path. See
+[Metrics](/docs/metrics) for where `mcp.failure.category` shows up on
+the `mcp.tool.errors` and `mcp.tool.silent_failures` counters.
+
+## What happens if fingerprinting itself fails?
+
+It falls back to a fixed result rather than throwing or producing a
+partial, inconsistent fingerprint:
+
+```json
+{
+  "fingerprint": "0000000000000000",
+  "signature": "unfingerprintable",
+  "category": "unknown",
+  "origin": "<whatever origin was passed in>"
+}
+```
+
+`computeFingerprint()` runs its entire pipeline inside one top-level
+try/catch specifically so this can't surface as an exception — it
+executes inline in the tool-call instrumentation path, so throwing here
+would mean a bug in fingerprinting could break the tool call it's
+trying to observe. This mirrors the same fail-safe design
+`isToolResultError()` and the rest of opentel-mcp's tracing follow — see
+[Silent Failures](/docs/silent-failures).
+
+## Can I customize the classifiers or stack depth?
+
+Yes, through `computeFingerprint()`'s third argument:
+
+```ts
+computeFingerprint(err, ctx, {
+  classifiers?: readonly Classifier[]; // prepended to the 7 built-in ones
+  stackFrames?: number;                // default: 5
+});
+```
+
+Custom classifiers run *before* the 7 built-in ones, so they get first
+refusal on an error. Full type signatures are on the
+[API Reference](/docs/api-reference) page.
+
+{/* VERIFY: computeFingerprint is not currently wired through
+instrumentMcpServer()'s own options — using a custom classifiers list or
+non-default stackFrames today means calling computeFingerprint()
+directly rather than configuring it through instrumentMcpServer(). This
+matches the source as of this writing; confirm whether that's changed by
+the time this ships. */}
+
+## Where do I go from here?
+
+- [Silent Failures](/docs/silent-failures) — the `isError: true`
+  detection every `tool_error`-origin fingerprint starts from.
+- [Metrics](/docs/metrics) — how `mcp.failure.category` shows up on the
+  `mcp.tool.errors` and `mcp.tool.silent_failures` counters.
+- [API Reference](/docs/api-reference) — full signatures for
+  `computeFingerprint`, `toSpanAttributes`, and the fingerprinting types.
