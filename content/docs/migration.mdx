@@ -1,25 +1,116 @@
 ---
 slug: "migration"
 title: "Migration Guide"
-description: "How to migrate an MCP server from raw @opentelemetry/api instrumentation to opentel-mcp."
+description: "Migrating an MCP server from raw @opentelemetry/api instrumentation to opentel-mcp — what stays, what gets deleted, before/after code."
 section: "Guides"
 order: 0
 datePublished: "2026-07-26"
 dateModified: "2026-07-26"
+author: "Thirumalaiboobathi B"
 ---
 
-<Callout variant="tip" title="Coming soon">
-  Full step-by-step migration guide ships in Round 2.
+If you've already hand-instrumented an MCP server with raw
+`@opentelemetry/api` — manually calling `tracer.startActiveSpan()`
+around each tool handler — migrating to opentel-mcp means deleting that
+manual span code and replacing it with one `instrumentMcpServer()` call.
+Your existing `TracerProvider` setup doesn't change.
+
+<Callout variant="tip" title="TL;DR">
+  Delete your manual `startActiveSpan()`/`span.end()` wrapping around
+  tool handlers. Call `instrumentMcpServer(server, {})` once, before
+  registering tools — no `setupNodeSdk`, no `serviceName`, since your
+  `TracerProvider` is already registered. opentel-mcp picks it up as-is,
+  and adds `CallToolResult.isError` detection your manual instrumentation
+  almost certainly didn't have.
 </Callout>
 
-## From raw @opentelemetry/api
+## What does hand-rolled `@opentelemetry/api` instrumentation typically look like?
 
-```ts
-// Before
-import { trace } from "@opentelemetry/api";
+Wrapping each tool handler manually, something like this:
 
-// After
-import { instrumentMcpServer } from "opentel-mcp";
+```js
+import { trace, SpanStatusCode } from '@opentelemetry/api';
+
+const tracer = trace.getTracer('my-mcp-server');
+
+server.setRequestHandler(CallToolRequestSchema, async (request) => {
+  return tracer.startActiveSpan(`tools/call ${request.params.name}`, async (span) => {
+    try {
+      const result = await originalHandler(request);
+      span.setStatus({ code: SpanStatusCode.OK });
+      return result;
+    } catch (err) {
+      span.recordException(err);
+      span.setStatus({ code: SpanStatusCode.ERROR, message: err.message });
+      throw err;
+    } finally {
+      span.end();
+    }
+  });
+});
 ```
 
-Full guide lands in Round 2.
+This catches thrown exceptions. It does not catch a tool that returns
+normally with `CallToolResult.isError: true` — see
+[Silent Failures](/docs/silent-failures) for why that's a real gap, not
+a hypothetical one. Nothing in raw `@opentelemetry/api` knows MCP's
+`CallToolResult` shape; it only sees whatever span code you wrote by
+hand.
+
+## What do I replace it with?
+
+```js
+import { instrumentMcpServer } from 'opentel-mcp';
+
+// Your TracerProvider is already registered elsewhere — no changes there.
+instrumentMcpServer(server, {});
+```
+
+Delete the manual `startActiveSpan()` wrapping entirely. Since
+`setupNodeSdk` defaults to `false`, opentel-mcp emits spans through
+whatever `TracerProvider` your application already registered globally —
+it never creates or overrides one. `serviceName` isn't needed either;
+that's only for opentel-mcp's own `NodeTracerProvider`, created only when
+`setupNodeSdk: true`. See [API Reference](/docs/api-reference) for the
+full `InstrumentOptions` list.
+
+## What do I gain that my manual instrumentation didn't have?
+
+- **`CallToolResult.isError` detection.** The manual example above marks
+  a span `ERROR` only on a thrown exception. opentel-mcp also marks it
+  `ERROR` when a handler returns normally with `isError: true` — see
+  [Silent Failures](/docs/silent-failures).
+- **Four `mcp.tool.*` metrics** (`calls`, `errors`, `silent_failures`,
+  `duration`) for free, once you register a `MeterProvider` — see
+  [Metrics](/docs/metrics). Manual instrumentation usually only had
+  spans, not metrics, since wiring up counters and histograms by hand
+  for every handler is enough extra code that it tends not to happen.
+- **[Deep Failure Fingerprinting](/docs/deep-fingerprinting)**, on by
+  default — a stable identifier per underlying failure, so the same bug
+  doesn't look like a hundred different errors across a hundred spans.
+
+## What do I need to double-check after migrating?
+
+- **Call order.** `instrumentMcpServer()` must run before any tool
+  handler is registered, same constraint as a fresh install — see
+  [Getting Started](/docs/getting-started).
+- **Span name and attributes will change.** opentel-mcp names spans
+  `{mcp.method.name} {tool name}` (e.g. `tools/call echo`) and sets a
+  specific attribute set (`mcp.method.name`, `gen_ai.tool.name`,
+  `gen_ai.operation.name`, `mcp.tool.argument_count`,
+  `jsonrpc.request.id`) — see [API Reference](/docs/api-reference). If a
+  dashboard or alert was built against your old manual span names or
+  attributes, it needs updating.
+- **Don't double-instrument.** If your manual wrapping and
+  `instrumentMcpServer()` are both active on the same handler, you'll
+  get nested or duplicate spans. Remove the manual wrapping as part of
+  the same change, not after.
+
+## Where do I go from here?
+
+- [Silent Failures](/docs/silent-failures) — the detection gap this
+  migration closes.
+- [Metrics](/docs/metrics) — wiring up a `MeterProvider` to get the four
+  `mcp.tool.*` instruments.
+- [API Reference](/docs/api-reference) — full `instrumentMcpServer()`
+  signature and options.
