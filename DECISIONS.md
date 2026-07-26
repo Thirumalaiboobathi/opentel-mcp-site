@@ -556,3 +556,22 @@ needed its own fix independent of the footer change, since Radix's
 skip happens well before the footer: added a visually-hidden `<h2>`
 ("Questions") immediately before the accordion so its `<h3>` triggers
 nest under something.
+
+## Deploy
+
+### `pnpm-workspace.yaml` needs an explicit `packages` field — Cloudflare's pnpm caught it, local pnpm didn't
+First Cloudflare Pages build failed at the install step:
+`ERROR  packages field missing or empty`. `pnpm-workspace.yaml` existed
+in this repo since Phase 1 (added for the `ignoredBuiltDependencies`
+setting) but never had a `packages:` field — this is a single-package
+repo, not an actual pnpm workspace/monorepo, so nothing here ever needed
+one. Local pnpm (10.30.1, via corepack) treats a workspace file with no
+`packages` field as silently equivalent to no workspace file at all.
+Cloudflare Pages' pnpm (10.11.1) treats it as a hard error in strict
+mode. Fixed by adding `packages: ["."]`, which declares "the workspace
+root itself is the one package" — the accurate description of this
+repo's actual layout, not a workaround. Verified locally with both
+`pnpm install --frozen-lockfile` and a full `pnpm build` before pushing;
+both exit 0 same as before the fix, confirming this only affects
+workspace resolution strictness, not anything else about the install or
+build.
