@@ -13,6 +13,7 @@ export const metadata: Metadata = buildMetadata({
   title: `About — ${SITE.name}`,
   description: `${AUTHOR.name} — ${AUTHOR.role} in ${AUTHOR.location}, author of ${PACKAGE.name}.`,
   path: PATH,
+  image: `${SITE.url}/opengraph-image`,
 });
 
 export default function AboutPage() {

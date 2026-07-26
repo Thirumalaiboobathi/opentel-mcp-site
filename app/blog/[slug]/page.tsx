@@ -24,9 +24,10 @@ export async function generateMetadata({
   if (!post) return {};
 
   return buildMetadata({
-    title: `${post.title} — ${SITE.name} Blog`,
+    title: post.title,
     description: post.description,
     path: post.permalink,
+    image: `${SITE.url}/opengraph-image`,
   });
 }
 

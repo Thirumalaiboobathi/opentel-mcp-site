@@ -17,6 +17,7 @@ export const metadata: Metadata = buildMetadata({
   title: `FAQ — ${SITE.name}`,
   description: `${PACKAGE.name} frequently asked questions: silent failures, Deep Failure Fingerprinting, metrics, framework compatibility, and more.`,
   path: "/faq",
+  image: `${SITE.url}/opengraph-image`,
 });
 
 export default function FaqPage() {
@@ -51,6 +52,7 @@ export default function FaqPage() {
             .
           </p>
 
+          <h2 className="sr-only">Questions</h2>
           <Accordion type="single" collapsible className="mt-10">
             {faq.items.map((item, i) => (
               <AccordionItem key={i} value={`item-${i}`}>

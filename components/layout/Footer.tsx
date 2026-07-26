@@ -48,9 +48,9 @@ export function Footer() {
         <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-4">
           {FOOTER_COLUMNS.map((column) => (
             <div key={column.heading}>
-              <h3 className="text-sm font-semibold text-foreground">
+              <h2 className="text-sm font-semibold text-foreground">
                 {column.heading}
-              </h3>
+              </h2>
               <ul className="mt-4 flex flex-col gap-3">
                 {column.links.map((link) =>
                   "external" in link && link.external ? (

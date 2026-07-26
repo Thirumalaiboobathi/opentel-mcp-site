@@ -165,6 +165,7 @@ export const metadata: Metadata = buildMetadata({
   title: `Changelog — ${SITE.name}`,
   description: `Version history for ${PACKAGE.name}, v0.1.0 through v${PACKAGE.version}, sourced from the real commit history and README.`,
   path: PATH,
+  image: `${SITE.url}/opengraph-image`,
 });
 
 export default function ChangelogPage() {

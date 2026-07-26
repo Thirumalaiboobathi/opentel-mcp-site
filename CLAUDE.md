@@ -37,14 +37,20 @@ not the *spec*.
 
 ## Current Phase
 
-Phase 5 (content) in progress. Flagship page approved as the tone
-anchor. Batch A (highest-fabrication-risk pages: api-reference, metrics,
-deep-fingerprinting) drafted and committed, sourced directly from the
-real opentel-mcp v0.4.0 repo — see "Phase 5 Progress" below and
-DECISIONS.md's "Round 2"/"Round 3" sections. Paused at hard-stop-1 for
-user to answer the `VERIFY` comments before Batch B (getting-started,
-migration, docs overview, faq) and Batch C (comparison, changelog,
-about, blog).
+Phase 5 (content) is complete — all 12 pages shipped (flagship +
+Batch A/B/C), zero remaining `VERIFY` comments, zero remaining
+`SITE_REPO_URL`/other-resolved placeholders (3 author-contact
+placeholders remain, explicitly TBD from the user). Round 3 (SEO/AEO
+polish) is in progress: `llms.txt` curated for real, `llms-full.txt`
+now build-generated from real content (see `scripts/generate-llms-full.mjs`),
+and a full JSON-LD/metadata/accessibility validation pass is done — see
+DECISIONS.md's "Round 6" for what that pass actually found and fixed
+(it wasn't just checking boxes — five real, previously-shipped bugs
+came out of it: two more scope overclaims, three unused schema
+builders, a site-wide double-branded `<title>` bug plus the homepage
+never calling `buildMetadata()` at all, a broken default OG image
+silently beating the real dynamically-generated ones, and two heading-
+hierarchy skips traced to the footer).
 
 Round 1 (Phase 4 docs infrastructure + Phase 7 SEO/AEO scaffold) is
 complete — see Phase Checklist below.

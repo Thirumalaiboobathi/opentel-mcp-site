@@ -18,6 +18,7 @@ export const metadata: Metadata = buildMetadata({
   description:
     "How opentel-mcp compares to raw @opentelemetry/api instrumentation for MCP servers, honestly marked where a claim can't be verified.",
   path: PATH,
+  image: `${SITE.url}/opengraph-image`,
 });
 
 type Cell = "yes" | "no" | "unverified" | "na";

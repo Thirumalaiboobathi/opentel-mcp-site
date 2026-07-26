@@ -14,6 +14,7 @@ export const metadata: Metadata = buildMetadata({
   title: `Blog — ${SITE.name}`,
   description: `Posts about ${PACKAGE.name} development, OpenTelemetry, and MCP observability.`,
   path: PATH,
+  image: `${SITE.url}/opengraph-image`,
 });
 
 export default function BlogIndexPage() {

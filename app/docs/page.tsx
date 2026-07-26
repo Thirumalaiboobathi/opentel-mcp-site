@@ -13,6 +13,7 @@ export const metadata: Metadata = buildMetadata({
   description:
     "Documentation for opentel-mcp: getting started, silent-failure detection, deep failure fingerprinting, metrics, API reference, and migration guides.",
   path: "/docs",
+  image: `${SITE.url}/opengraph-image`,
 });
 
 export default function DocsOverviewPage() {

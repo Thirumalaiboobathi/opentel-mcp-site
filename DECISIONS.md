@@ -463,3 +463,96 @@ the post describes the real, confirmed *components* of that work
 narrow-prompt/incremental-review discipline, without inventing specific
 fake "Phase 1: X, Phase 2: Y" labels or dates that aren't backed by
 anything.
+
+## Round 6 (SEO/AEO validation pass — found and fixed real bugs, not just checked boxes)
+
+This pass was supposed to be verification. It surfaced five real,
+previously-shipped bugs — logged in detail since "run a validation
+script" undersells what actually happened here.
+
+### `Features.tsx` and `HowItWorks.tsx` still had the tools/resources/prompts overclaim — missed by the earlier grep
+The Round 5 scope-precision grep (`resources.*prompts`) caught
+`Features.tsx` but missed `HowItWorks.tsx`'s "every tool, resource, and
+prompt call gets a span" — because that copy used the *singular*
+"resource, and prompt," not the plural the regex was anchored to. Found
+via a broader re-grep (`tool.{0,15}(resource|prompt)`) during this
+round. Both are now fixed to say "every tools/call." Lesson: a grep
+anchored to one specific wording only proves that wording is gone, not
+that the underlying claim is gone — worth a wildcard pass when the
+stakes are "did we say something false," not just "did we say this
+exact string."
+
+### `SoftwareApplication`, `SoftwareSourceCode`, and `HowTo` schemas existed in `lib/schema.ts` since Phase 4 but were never emitted anywhere
+Auditing "which pages emit which schemas" (as asked) meant grepping for
+each builder's call sites — three of ten builders had zero call sites.
+Wired `SoftwareApplication` and `SoftwareSourceCode` onto the homepage
+(the natural place to describe the package itself as software) and
+`HowTo` using the real 3-step content already in the `HowItWorks`
+landing section, not new copy.
+
+### `SoftwareSourceCode.programmingLanguage` said "TypeScript" — the package ships plain JavaScript
+Caught while wiring the schema onto the homepage and cross-checking it
+against source: `src/fingerprint/types.d.ts`'s own docblock states "this
+project ships plain JS with no TypeScript build step." Fixed to
+"JavaScript." `.d.ts` files exist for TypeScript *consumers*; they aren't
+evidence the implementation itself is TypeScript.
+
+### Every page's `<title>` was double-branded and the homepage bypassed `buildMetadata()` entirely
+The root layout's `title.template: "%s · opentel-mcp"` was appended
+*after* every page's own `buildMetadata()` call already produced a title
+ending in some form of "opentel-mcp" (e.g. "Silent Failures — opentel-mcp
+Docs") — so the actual rendered title was "Silent Failures — opentel-mcp
+Docs · opentel-mcp," repeating the brand name twice, on literally every
+page. It also meant `buildMetadata`'s own 60-char truncation budget was
+measured against the wrong (shorter, pre-suffix) string, so titles that
+looked compliant before the template ran could still land over 60 chars
+after it. Separately, the homepage (`app/page.tsx`) never called
+`buildMetadata()` at all — it silently inherited the root layout's raw
+82-char title / 243-char description with no canonical URL and no
+OpenGraph `url`. Fixed by removing the template entirely (each page's
+`buildMetadata()` call now produces the final title, no further
+appending) and adding an explicit `buildMetadata()` call to the homepage
+with a title/description actually written to fit the real budget.
+
+### `buildMetadata()`'s hardcoded default OG image pointed at a file that doesn't exist, and it was silently overriding the real dynamically-generated ones
+`public/og-default.png` was flagged as a missing asset back in Round 1
+but never actually blocked anything — until this round's og:image check
+showed `/docs/silent-failures` serving `og-default.png` (404) instead of
+its own real, working `opengraph-image.tsx`-generated PNG (verified
+non-broken back in Round 1). Root cause: `buildMetadata()` always set
+`openGraph.images`/`twitter.images` to `[{ url: '.../og-default.png' }]`
+by default, and Next.js's automatic file-convention image injection only
+applies when a page's metadata *doesn't* already specify `images` —
+even an explicit `images: undefined` key still counted as "already
+specified" and suppressed it (confirmed by testing: setting the value to
+`undefined` didn't restore the automatic behavior; the key had to be
+omitted from the object entirely via conditional spread). Fixed
+`buildMetadata()` to omit the `images` key completely when no `image`
+param is passed. Separately confirmed (also by testing, not assumption)
+that Next's per-route `opengraph-image.tsx` file convention does *not*
+cascade from the app root to unrelated sibling top-level routes the way
+`layout.tsx` does — so `/faq`, `/about`, `/comparison`, `/changelog`,
+`/blog`, and `/blog/[slug]` (none of which have their own
+`opengraph-image.tsx`) got no image at all once the broken default was
+removed. Fixed by passing `image: `${SITE.url}/opengraph-image`` (the
+real root-level generated image) explicitly to each of those pages'
+`buildMetadata()` calls. Only the homepage and `/docs/[slug]` pages,
+which do have their own dedicated `opengraph-image.tsx`, needed no
+explicit `image` param.
+
+### Footer's column headings were `<h3>` with no page ever guaranteeing an `<h2>` before them
+A grep-based heading-hierarchy check (h1 → h2 → h3, no skipped levels)
+found two real skips: `/faq` and `/blog` both went straight from `<h1>`
+to an `<h3>` with nothing in between. The `<h3>` in both cases turned out
+to be the *footer's* column headings ("Product," "Docs," "Community,"
+"Author") — present on every page, but only visible as a hierarchy bug
+on the two pages whose own main content had no `<h2>` before the footer
+rendered. Most other pages happened to have their own `<h2>`s already,
+masking the same underlying issue. Fixed at the source: changed
+`Footer.tsx`'s column headings from `<h3>` to `<h2>` (safe everywhere —
+downgrading a heading level never introduces a new skip). `/faq` also
+needed its own fix independent of the footer change, since Radix's
+`Accordion.Header` primitive hardcodes `<h3>` for each question and that
+skip happens well before the footer: added a visually-hidden `<h2>`
+("Questions") immediately before the accordion so its `<h3>` triggers
+nest under something.

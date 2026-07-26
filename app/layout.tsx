@@ -8,6 +8,7 @@ import { Header } from "@/components/layout/Header";
 import { ThemeProvider } from "@/components/layout/ThemeProvider";
 import { JsonLd } from "@/components/seo/JsonLd";
 import { SITE } from "@/lib/constants";
+import { buildMetadata } from "@/lib/metadata";
 import { buildOrganizationSchema, buildWebSiteSchema } from "@/lib/schema";
 
 const geistSans = localFont({
@@ -22,13 +23,19 @@ const geistMono = localFont({
   weight: "100 900",
 });
 
+// Fallback metadata for any route that doesn't set its own (e.g. the
+// generated 404 page). Every real page calls buildMetadata() directly
+// with its own final title — no title template here, since one page's
+// title already includes "opentel-mcp" in context-appropriate form;
+// templating would append it a second time.
 export const metadata: Metadata = {
   metadataBase: new URL(SITE.url),
-  title: {
-    default: `${SITE.name} — ${SITE.tagline}`,
-    template: `%s · ${SITE.name}`,
-  },
-  description: SITE.description,
+  ...buildMetadata({
+    title: `${SITE.name} — OpenTelemetry for MCP silent failures`,
+    description: SITE.description,
+    path: "/",
+    image: `${SITE.url}/opengraph-image`,
+  }),
 };
 
 export default function RootLayout({

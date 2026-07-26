@@ -12,7 +12,7 @@ const STEPS = [
     number: "02",
     title: "Instrument your server",
     description:
-      "Wrap your MCP server once — every tool, resource, and prompt call gets a span automatically.",
+      "Wrap your MCP server once — every tools/call gets a span automatically.",
     code: `import { instrumentMcpServer } from "${PACKAGE.name}";
 
 instrumentMcpServer(server);`,

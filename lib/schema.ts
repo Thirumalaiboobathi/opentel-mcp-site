@@ -54,7 +54,7 @@ export function buildSoftwareSourceCodeSchema() {
     "@type": "SoftwareSourceCode",
     name: PACKAGE.name,
     codeRepository: PACKAGE.github,
-    programmingLanguage: "TypeScript",
+    programmingLanguage: "JavaScript",
     runtimePlatform: PACKAGE.runtime,
     license: `https://opensource.org/licenses/${PACKAGE.license}`,
     author: {
@@ -178,6 +178,7 @@ export function buildBlogPostingSchema(params: {
     headline: params.title,
     description: params.description,
     url: `${SITE.url}${params.path}`,
+    image: `${SITE.url}/opengraph-image`,
     datePublished: params.datePublished,
     dateModified: params.dateModified,
     author: {
