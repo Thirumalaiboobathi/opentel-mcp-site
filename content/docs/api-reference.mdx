@@ -1,21 +1,208 @@
 ---
 slug: "api-reference"
 title: "API Reference"
-description: "Exported functions, types, and configuration options for opentel-mcp, with full signatures."
+description: "Exported functions, types, and options in opentel-mcp v0.4.0: instrumentMcpServer, computeFingerprint, toSpanAttributes, and their real signatures."
 section: "Reference"
 order: 1
 datePublished: "2026-07-26"
 dateModified: "2026-07-26"
+author: "Thirumalaiboobathi B"
 ---
 
-<Callout variant="info" title="Coming soon">
-  Full exported-function and type reference ships in Round 2.
+opentel-mcp's package root exports one function for instrumentation
+(`instrumentMcpServer`) and a small set of functions and types for
+[Deep Failure Fingerprinting](/docs/deep-fingerprinting)
+(`computeFingerprint`, `toSpanAttributes`, `ATTRIBUTE_KEYS`,
+`METRIC_SAFE_ATTRIBUTES`, `DEFAULT_CLASSIFIERS`). Every signature below is
+copied from the package's own `src/index.d.ts` and the modules it
+re-exports from, not reconstructed from behavior.
+
+<Callout variant="tip" title="TL;DR">
+  `instrumentMcpServer(server, options?)` is the only function most
+  integrations need — it wraps a `Server` or `McpServer` instance and
+  returns it unchanged (plus an optional `shutdown()`). The fingerprinting
+  exports (`computeFingerprint`, `toSpanAttributes`, and friends) exist for
+  advanced cases: calling the fingerprinting pipeline directly, outside of
+  `instrumentMcpServer`'s automatic per-call wrapping.
 </Callout>
 
-## Exports
+## What does `instrumentMcpServer()` accept?
 
 ```ts
-import { instrumentMcpServer } from "opentel-mcp";
+function instrumentMcpServer<T extends Server | McpServer | DuckTypedMcpServer>(
+  server: T,
+  options?: InstrumentOptions,
+): T & { shutdown?: () => Promise<void> };
 ```
 
-Full signatures land in Round 2.
+`server` is either a low-level `Server` (from
+`@modelcontextprotocol/sdk/server/index.js`) or a high-level `McpServer`
+(from `@modelcontextprotocol/sdk/server/mcp.js`). It must be called
+**before** any `tools/call` handler is registered — before
+`server.setRequestHandler(CallToolRequestSchema, ...)` on a low-level
+`Server`, or before any `.tool()`/`.registerTool()` call on an
+`McpServer`. Calling it more than once on the same server (or on an
+`McpServer` and its inner `Server` interchangeably) is a no-op after the
+first call.
+
+It returns the same object it was given, so it can be used inline:
+
+```ts
+const server = instrumentMcpServer(new McpServer({ name: 'my-server', version: '1.0.0' }), {
+  serviceName: 'my-mcp-server',
+});
+```
+
+### `InstrumentOptions`
+
+```ts
+interface InstrumentOptions {
+  serviceName?: string;
+  exporterUrl?: string;
+  enabled?: boolean;       // default: true
+  enableMetrics?: boolean; // default: true
+  setupNodeSdk?: boolean;  // default: false
+}
+```
+
+| Option | Default | What it does |
+|---|---|---|
+| `serviceName` | — | Names the resource of the tracer provider opentel-mcp creates. Required (non-empty string) when `setupNodeSdk: true` — throws otherwise. Has no effect when `setupNodeSdk` is `false`; passing it anyway logs a one-time `diag.warn` rather than erroring. |
+| `exporterUrl` | — | OTLP/HTTP traces endpoint (e.g. `http://localhost:4318/v1/traces`). Only takes effect when `setupNodeSdk: true`. |
+| `enabled` | `true` | `false` makes `instrumentMcpServer()` a complete no-op. |
+| `enableMetrics` | `true` | `false` disables the `mcp.tool.*` metrics; tracing is unaffected. Metrics are already a zero-overhead no-op when no `MeterProvider` is registered — this is for opting out even when one *is*. |
+| `setupNodeSdk` | `false` | `true` makes opentel-mcp create and register its own `NodeTracerProvider` (always to stderr; also to `exporterUrl` via OTLP/HTTP if set). `false` (the default) emits spans through whatever `TracerProvider` the host application already registered globally, or drops them silently if none has been — so opentel-mcp never overrides a host app's own OpenTelemetry setup. |
+
+<Callout variant="info" title="fingerprinting isn't in this TypeScript interface">
+  `src/config.js`'s `resolveOptions()` also reads a `fingerprinting`
+  option (boolean, default `true` — see
+  [Deep Failure Fingerprinting](/docs/deep-fingerprinting)) and
+  `src/instrument.js` uses it at runtime. It's real and it works, but as
+  of this writing it isn't listed in the `InstrumentOptions` TypeScript
+  interface in `src/index.d.ts` — only in `config.js`'s JSDoc typedef.
+  TypeScript consumers may see a type error passing `{ fingerprinting:
+  false }` even though it's honored at runtime.
+  {/* VERIFY: confirm this is still the case in the exact published npm
+  tarball for v0.4.0, not just the main branch, and whether it's already
+  tracked as a known issue upstream. */}
+</Callout>
+
+### What do I get back from `instrumentMcpServer()`?
+
+The same object passed in — `T`, unchanged — plus an optional
+`shutdown(): Promise<void>`. `shutdown` is only attached when
+`setupNodeSdk: true`; check for its presence before calling it. It
+flushes and shuts down the `NodeTracerProvider` opentel-mcp created, and
+should run during your process's own shutdown sequence so buffered spans
+aren't lost.
+
+### `DuckTypedMcpServer`
+
+```ts
+type DuckTypedMcpServer = {
+  server: { setRequestHandler: (...args: any[]) => any };
+  tool?: (...args: any[]) => any;
+  registerTool?: (...args: any[]) => any;
+};
+```
+
+A structural fallback type for `McpServer`-shaped objects that aren't
+literally `instanceof McpServer` — the package's own doc comment
+explains why: `McpServer` has private fields, so TypeScript treats
+assignability to it as effectively nominal, and an `McpServer` instance
+from a *different* resolved copy of `@modelcontextprotocol/sdk` (a
+hoisting mismatch in a monorepo, for example) would otherwise fail the
+type check even though `instrumentMcpServer()` handles it fine at
+runtime — it never uses `instanceof McpServer` internally, only this
+same duck-typing check.
+
+## What's exported for Deep Failure Fingerprinting?
+
+These are re-exported at the package root from `src/fingerprint/`, so
+they're available as `import { computeFingerprint, ... } from
+'opentel-mcp'` rather than reaching into a subpath.
+
+```ts
+function computeFingerprint(
+  err: unknown,
+  ctx: FingerprintContext,
+  opts?: ComputeFingerprintOptions,
+): FingerprintResult;
+```
+
+```ts
+interface FingerprintContext {
+  readonly toolName?: string;
+  readonly origin: FailureOrigin;
+  readonly cwd?: string; // default: process.cwd(), used for path normalization
+}
+
+interface ComputeFingerprintOptions {
+  readonly classifiers?: readonly Classifier[]; // prepended to DEFAULT_CLASSIFIERS
+  readonly stackFrames?: number;                // default: 5
+}
+```
+
+`computeFingerprint()` never throws — see
+[Deep Failure Fingerprinting](/docs/deep-fingerprinting) for the fallback
+behavior and why that matters for something running inline in the
+instrumentation path.
+
+```ts
+function toSpanAttributes(result: FingerprintResult): Attributes;
+```
+
+Maps a `FingerprintResult` onto the five `mcp.failure.*` span attributes.
+Returns `{}` if `result` is malformed in any way — like
+`computeFingerprint()`, this must never throw, since it also runs inline
+on every failure.
+
+```ts
+const ATTRIBUTE_KEYS: {
+  FINGERPRINT: 'mcp.failure.fingerprint';
+  SIGNATURE: 'mcp.failure.signature';
+  CATEGORY: 'mcp.failure.category';
+  ORIGIN: 'mcp.failure.origin';
+  ERROR_CLASS: 'mcp.failure.error_class';
+};
+
+const METRIC_SAFE_ATTRIBUTES: readonly ['mcp.failure.category', 'mcp.failure.origin'];
+
+const DEFAULT_CLASSIFIERS: readonly Classifier[]; // 7 built-in classifiers, in match order
+```
+
+## What types does opentel-mcp export?
+
+```ts
+type FailureCategory =
+  | 'validation' | 'timeout' | 'network' | 'auth'
+  | 'dependency' | 'serialization' | 'internal' | 'unknown';
+
+type FailureOrigin = 'tool_error' | 'thrown' | 'transport';
+
+interface FingerprintResult {
+  readonly fingerprint: string; // 16 lowercase hex chars
+  readonly signature: string;   // "<errorClass>@<fn>:<line>", ≤60 chars
+  readonly category: FailureCategory;
+  readonly origin: FailureOrigin;
+  readonly inputs: FingerprintInputs;
+}
+
+interface FingerprintInputs {
+  readonly errorClass: string;
+  readonly category: FailureCategory;
+  readonly origin: FailureOrigin;
+  readonly toolName: string | null; // set only for origin: 'tool_error'
+  readonly normalizedMessage: string;
+  readonly stackSignature: string;
+}
+```
+
+## Where do I go from here?
+
+- [Deep Failure Fingerprinting](/docs/deep-fingerprinting) — what these
+  fingerprinting exports are for and how the hashing pipeline works.
+- [Metrics](/docs/metrics) — the four `mcp.tool.*` instruments
+  `instrumentMcpServer()` records.
+- [Silent Failures](/docs/silent-failures) — the `isError` detection
+  this whole package exists for.
