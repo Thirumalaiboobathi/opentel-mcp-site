@@ -37,17 +37,37 @@ not the *spec*.
 
 ## Current Phase
 
-Phase 5 (content) in progress. `/docs/silent-failures` (the flagship
-page) is drafted, sourced directly from the real opentel-mcp v0.4.0
-repo and the live MCP spec — see DECISIONS.md's "Round 2" section for
-what was verified vs. flagged with `<!-- VERIFY -->`. Paused per user
-instruction ("hard stop 1") for voice-alignment review before writing
-the remaining 11 pages (getting-started, deep-fingerprinting, metrics,
-api-reference, migration, docs overview, faq, comparison, changelog,
-about, blog seed post).
+Phase 5 (content) in progress. Flagship page approved as the tone
+anchor. Batch A (highest-fabrication-risk pages: api-reference, metrics,
+deep-fingerprinting) drafted and committed, sourced directly from the
+real opentel-mcp v0.4.0 repo — see "Phase 5 Progress" below and
+DECISIONS.md's "Round 2"/"Round 3" sections. Paused at hard-stop-1 for
+user to answer the `VERIFY` comments before Batch B (getting-started,
+migration, docs overview, faq) and Batch C (comparison, changelog,
+about, blog).
 
 Round 1 (Phase 4 docs infrastructure + Phase 7 SEO/AEO scaffold) is
 complete — see Phase Checklist below.
+
+## Phase 5 Progress
+
+One bullet per page, updated after each commit.
+
+- `/docs/silent-failures` (flagship, tone anchor) — 965 words, 0
+  `VERIFY` comments. All claims confirmed directly from source; nothing
+  needed flagging.
+- `/docs/api-reference` — 1008 words, 1 `VERIFY` comment (whether the
+  `InstrumentOptions`/`fingerprinting` type-declaration gap is still
+  true in the published npm tarball). Notable: documents a real
+  discrepancy between `src/index.d.ts`'s public `InstrumentOptions`
+  interface and `src/config.js`'s actual runtime behavior — `fingerprinting`
+  works but isn't in the TS interface.
+- `/docs/metrics` — 744 words, 1 `VERIFY` comment (exact current API of
+  the third-party `@opentelemetry/exporter-prometheus` package, which
+  isn't an opentel-mcp dependency).
+- `/docs/deep-fingerprinting` — 1038 words, 1 `VERIFY` comment (whether
+  `computeFingerprint` has since been wired through
+  `instrumentMcpServer()`'s own options — as of this writing it hasn't).
 
 ## Lessons
 

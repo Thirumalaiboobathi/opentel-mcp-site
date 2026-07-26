@@ -308,3 +308,36 @@ links to `/docs`, `/faq`, etc. before those pages existed) — `/comparison`
 ships in Phase 6. Not a build error under `output: 'export'` (sitemap/
 link generation doesn't validate target routes exist), just noting it so
 it isn't mistaken for an oversight later.
+
+## Round 3 (Phase 5 content — Batch A)
+
+### `<!-- VERIFY: ... -->` HTML comments break MDX — switched to `{/* VERIFY: ... */}`
+The user's anti-fabrication rule specifies flagging uncertain claims with
+an HTML comment. Velite's MDX compiler rejects raw `<!-- -->` outright
+("Unexpected character `!`... to create a comment in MDX, use `{/* text
+*/}`") — and critically, it didn't fail the whole build loudly: it
+dropped the three affected files from the `docs` collection silently,
+and the Next.js build still exited 0 with those routes just missing.
+Switched all three `VERIFY` comments to MDX-native `{/* ... */}` syntax.
+This is arguably closer to the actual intent than a literal HTML comment
+would have been anyway: JSX comments stay in the source (`grep VERIFY
+content/docs/*.mdx` finds them) but don't render into the page HTML, so
+they read as internal review markers rather than visible "TODO" notes on
+a live doc page before the user's review pass happens.
+
+**Process note for future rounds:** Velite silently dropping invalid
+files from a collection (rather than failing the build) means "pnpm
+build exits 0" alone doesn't prove every content file compiled — cross-
+check the route list in the build's own output (or `out/docs/*/`
+directly) against the expected file count after every content change,
+not just the exit code.
+
+### Confirmed all four metrics names directly from source — none needed a VERIFY
+The user's message assumed only `mcp.tool.silent_failures` was confirmed
+and the other three might need `VERIFY` comments or omission. Earlier
+research (before the flagship page) had already fetched `src/metrics.js`
+directly and confirmed all four real instrument names, types, units, and
+attribute sets (`mcp.tool.calls`, `mcp.tool.errors`,
+`mcp.tool.silent_failures`, `mcp.tool.duration`) — used all four with
+confidence in `/docs/metrics`, no `VERIFY` needed on the instrument names
+themselves.
