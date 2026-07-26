@@ -45,6 +45,10 @@ function instrumentMcpServer<T extends Server | McpServer | DuckTypedMcpServer>(
 `McpServer` and its inner `Server` interchangeably) is a no-op after the
 first call.
 
+Scope: as of v0.4.0, only the `tools/call` handler (registered via
+`CallToolRequestSchema`) is wrapped. Requests for `resources/*` or
+`prompts/*` pass through unwrapped and don't emit spans or metrics.
+
 It returns the same object it was given, so it can be used inline:
 
 ```ts

@@ -5,9 +5,9 @@ export const SITE = {
   tagline: "OpenTelemetry for MCP servers that actually catches silent failures.",
   description:
     "opentel-mcp is a Node.js OpenTelemetry instrumentation library for Model Context Protocol servers. It uniquely detects silent failures — CallToolResult.isError=true inside successful JSON-RPC responses — and marks OpenTelemetry spans as ERROR.",
-  // Placeholder: this marketing site's own repo (distinct from PACKAGE.github,
-  // which is the npm package's repo), used for "Edit this page on GitHub" links.
-  repoUrl: "SITE_REPO_URL",
+  // This marketing site's own repo (distinct from PACKAGE.github, which is
+  // the npm package's repo), used for "Edit this page on GitHub" links.
+  repoUrl: "https://github.com/Thirumalaiboobathi/opentel-mcp-site",
 } as const;
 
 export const PACKAGE = {

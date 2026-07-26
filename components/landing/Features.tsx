@@ -32,7 +32,7 @@ const FEATURES = [
     icon: Zap,
     title: "Zero-Config Auto-Instrumentation",
     description:
-      "Wrap your MCP server and get spans for tools, resources, and prompts immediately — no manual span management required.",
+      "Wrap your MCP server once and every tools/call gets a span immediately — no manual span management required.",
   },
   {
     icon: Sparkles,
