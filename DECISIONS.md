@@ -126,3 +126,48 @@ correctly flipping the `<html>` class between `dark` and `light` with the
 `globals.css` tokens responding correctly in both states. Only console
 output was Plausible's own "ignoring event on localhost" notices — not an
 app error.
+
+## Phase 3 (landing page)
+
+### `mcp-tracer` and download-count claims — hedged rather than fabricated
+The brief asked for a comparison row against `mcp-tracer` ("mark N/A if
+not [real]") and a download-count social-proof stat. Rather than invent
+specific capability claims about a third-party project with no way to
+verify them, `ComparisonTable.tsx` marks every `mcp-tracer` cell
+"unverified" (a dash icon, not a false "no") with an explicit footnote.
+For the download count, used a live `img.shields.io/npm/dw/opentel-mcp`
+badge instead of a hardcoded placeholder number — it's real, self-
+updating data via a plain `<img>` (a normal browser request, not
+build-time/runtime data fetching in the Next.js sense the brief
+prohibits), so there's nothing to keep in sync or eventually replace.
+
+### Verification method changed mid-phase: browser hydration checks abandoned in favor of build + static export
+Initial Phase 3 verification followed the Phase 2 pattern (dev server +
+Playwright). That surfaced what looked like a severe bug — clicking the
+install-command tabs or the theme toggle did nothing, and the browser
+console showed `Uncaught SyntaxError: Unexpected token '**'` inside a
+compiled chunk. Traced it to the actual served file
+(`_next/static/chunks/app/layout.js`) having corrupted trailing bytes
+(`]);*****/ }`) — not a source issue. Root cause: this session's own
+repeated abrupt `next dev` start/kill/`rm -rf .next` cycles (while
+requests were in flight) while hunting for a stable way to run the dev
+server in this WSL sandbox. A clean `rm -rf .next node_modules/.cache &&
+pnpm build` produced a normal exit-0 build with no errors, confirming the
+source was fine all along. Per direct user instruction, this project's
+phase-verification standard is now: **`pnpm build` exits 0 and
+`out/index.html` exists** — sufficient for a pure static-export site with
+no server runtime. Live-browser/Lighthouse checks are deferred to the end
+of Phase 7, not repeated every phase.
+
+### Terminal frame label was desynced from body content — fixed
+Caught via the (later-abandoned) Playwright pass before diagnosing the
+cache-corruption issue above: `AnimatedTerminal`'s header label updated
+instantly on frame change while the body content sat inside
+`AnimatePresence mode="wait"`, which delays mounting new content until
+the old content's exit animation finishes (~400ms). For that window the
+label and body referenced different frames. Fixed by wrapping the label
+in its own `AnimatePresence`/`motion.span` keyed identically to the body,
+so both swap in lockstep. This was a real, verified bug (unrelated to the
+cache corruption) — a legitimate case for the browser check even though
+the tooling around it turned out to be unreliable for anything beyond
+one-off diagnosis.

@@ -37,10 +37,41 @@ not the *spec*.
 
 ## Current Phase
 
-Phase 2 complete (layout shell: Header, Footer, MobileNav, ThemeProvider/
-ThemeToggle, JSON-LD, Plausible placeholder). Verified in an actual
-browser via Playwright at desktop and mobile widths, not just `pnpm
-build`. About to start Phase 3 (landing page).
+Phase 3 complete (landing page: all 9 sections). Verified via clean
+`pnpm build` producing `out/index.html` — see "Lessons" below for why
+that's the verification of record here, not live browser checks. About
+to start Phase 4 (docs infrastructure).
+
+## Lessons
+
+- **Dev-server hydration checks are unreliable in this WSL sandbox.**
+  Repeated rapid start/kill/`rm -rf .next` cycles against `next dev`
+  (from ad-hoc `nohup`/background probing) left the webpack dev cache
+  corrupted, which manifested as a phantom browser-side
+  `Uncaught SyntaxError: Unexpected token '**'` in a compiled chunk
+  (`_next/static/chunks/app/layout.js`) — the file's own trailing bytes
+  were literally garbled (`]);*****/ }`). This looked exactly like a
+  source bug (all client interactivity — theme toggle, tabs — appeared
+  broken) but was purely stale/corrupted build output. **Fix is always
+  `rm -rf .next node_modules/.cache && pnpm build`, never source
+  hunting** — if a fresh production build exits 0 and emits
+  `out/index.html`, the source is correct, full stop.
+- **Verification for this project = `pnpm build` + `out/index.html`
+  exists.** This is a pure static-export site; there is no server
+  runtime to smoke-test. Don't spawn Playwright/headless Chromium for
+  routine phase verification — it's expensive, flaky under repeated
+  restarts in this sandbox, and static export already proves every
+  route renders. Reserve real browser checks (Lighthouse, visual
+  regression) for the end of Phase 7.
+- **Also watch for zombie `next dev`/`next-server` processes** left by
+  interrupted background runs — they don't always hold the port they
+  originally bound (Next.js will silently pick a new port and report
+  "Port XXXX is in use by an unknown process"), so `curl localhost:3000`
+  can hit nothing while a real server is alive on a different port.
+  Check the dev server's own log output for the port it actually
+  bound, and avoid `lsof -i:` in this environment — it hangs. Use
+  `ss -ltn | grep :PORT` or a short-timeout `curl` instead. Kill stray
+  processes by PID from `ps aux`, not by port.
 
 ## Deviations From the Brief (log every opinionated call)
 
@@ -101,7 +132,10 @@ an index so a fresh session knows where to look. Summary of Phase 1 calls:
 - [x] Phase 2 — Layout shell (Header, Footer, MobileNav, ThemeProvider,
       ThemeToggle, JsonLd + Organization/WebSite schema, Plausible
       placeholder script, skip-to-content link, verified live in browser)
-- [ ] Phase 3 — Landing page
+- [x] Phase 3 — Landing page (Hero + AnimatedTerminal, TrustBar,
+      ProblemStatement, Features, HowItWorks, ComparisonTable,
+      InstallSection, SocialProof, CTA — verified via clean static
+      export, see "Lessons" for why)
 - [ ] Phase 4 — Docs infrastructure
 - [ ] Phase 5 — Content
 - [ ] Phase 6 — FAQ/Comparison/Changelog/About/Blog
