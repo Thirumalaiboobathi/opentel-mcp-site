@@ -50,7 +50,7 @@ export default function AboutPage() {
               avatar above in a later asset pass. */}
 
           <p className="mt-8 text-muted-foreground">
-            {AUTHOR.shortName} is the author of{" "}
+            {AUTHOR.name} is the author of{" "}
             <a
               href={PACKAGE.npm}
               target="_blank"
@@ -60,22 +60,22 @@ export default function AboutPage() {
               {PACKAGE.name}
             </a>
             , an OpenTelemetry instrumentation library for Model Context
-            Protocol (MCP) servers. Outside of that,{" "}
-            {AUTHOR.shortName} is Builder Circle Owner for the AWS User
-            Group Madurai and a member of the Madurai AI Community, and
-            has the AWS Certified AI Practitioner (AIF-C01) exam in
-            progress.
+            Protocol (MCP) servers. He is an active member of the AWS
+            User Group Madurai and the Madurai AI Community.
           </p>
 
           <h2 className="mt-10 text-xl font-semibold tracking-tight text-foreground">
             Background
           </h2>
           <p className="mt-4 text-muted-foreground">
-            {AUTHOR.shortName} studied Computer Science and Engineering at
-            Mepco Schlenk Engineering College, and works as a{" "}
-            {AUTHOR.role}. {PACKAGE.name} grew out of hitting the same
-            problem repeatedly while building MCP tooling: a tool call can
-            report success at the JSON-RPC level while failing at the tool
+            {AUTHOR.name} works as a GenAI and Full Stack Engineer,
+            building production systems across generative AI, agent
+            tooling, and cloud infrastructure. His work spans the
+            OpenTelemetry, AWS, and Model Context Protocol ecosystems,
+            with a focus on observability and reliability in AI agent
+            systems. {PACKAGE.name} grew out of hitting the same problem
+            repeatedly while building MCP tooling: a tool call can report
+            success at the JSON-RPC level while failing at the tool
             level, and nothing in standard OpenTelemetry instrumentation
             was set up to catch that — see{" "}
             <Link href="/docs/silent-failures" className="text-brand hover:underline">
