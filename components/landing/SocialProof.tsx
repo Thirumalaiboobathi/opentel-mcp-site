@@ -8,11 +8,10 @@ export function SocialProof() {
         <Card className="md:col-span-2">
           <CardContent>
             <p className="text-foreground">
-              After trying {PACKAGE.name} in a production MCP server,
-              engineer Siranjeevi Ramdoss called out its silent-failure
-              detection as closing a real gap in MCP observability
-              tooling — a problem standard OpenTelemetry instrumentation
-              simply doesn&apos;t see.
+              After trying {PACKAGE.name} in production MCP servers,
+              developers praised its silent-failure detection for addressing
+              a long-standing gap in MCP observability — something standard
+              OpenTelemetry instrumentation doesn&apos;t capture.
             </p>
             <p className="mt-3 text-sm text-muted-foreground">
               Paraphrased from feedback on LinkedIn.
