@@ -1,21 +1,24 @@
 ---
 slug: "api-reference"
 title: "API Reference"
-description: "Exported functions, types, and options in opentel-mcp v0.4.0: instrumentMcpServer, computeFingerprint, toSpanAttributes, and their real signatures."
+description: "Exported functions, types, and options in opentel-mcp v0.5.0: instrumentMcpServer, computeFingerprint, calculateCost, and their real signatures."
 section: "Reference"
 order: 1
 datePublished: "2026-07-26"
-dateModified: "2026-07-26"
+dateModified: "2026-07-29"
 author: "Thirumalaiboobathi B"
 ---
 
 opentel-mcp's package root exports one function for instrumentation
-(`instrumentMcpServer`) and a small set of functions and types for
+(`instrumentMcpServer`), a small set of functions and types for
 [Deep Failure Fingerprinting](/docs/deep-fingerprinting)
 (`computeFingerprint`, `toSpanAttributes`, `ATTRIBUTE_KEYS`,
-`METRIC_SAFE_ATTRIBUTES`, `DEFAULT_CLASSIFIERS`). Every signature below is
-copied from the package's own `src/index.d.ts` and the modules it
-re-exports from, not reconstructed from behavior.
+`METRIC_SAFE_ATTRIBUTES`, `DEFAULT_CLASSIFIERS`), and — new in v0.5.0 —
+a set of functions and types for
+[Cost & Token Attribution](/docs/cost-tracking) (`DEFAULT_PRICING`,
+`defaultExtractor`, `calculateCost`). Every signature below is copied
+from the package's own `src/index.d.ts` and the modules it re-exports
+from, not reconstructed from behavior.
 
 <Callout variant="tip" title="TL;DR">
   `instrumentMcpServer(server, options?)` is the only function most
@@ -45,7 +48,7 @@ function instrumentMcpServer<T extends Server | McpServer | DuckTypedMcpServer>(
 `McpServer` and its inner `Server` interchangeably) is a no-op after the
 first call.
 
-Scope: as of v0.4.0, only the `tools/call` handler (registered via
+Scope: as of v0.5.0, only the `tools/call` handler (registered via
 `CallToolRequestSchema`) is wrapped. Requests for `resources/*` or
 `prompts/*` pass through unwrapped and don't emit spans or metrics.
 
@@ -63,9 +66,10 @@ const server = instrumentMcpServer(new McpServer({ name: 'my-server', version: '
 interface InstrumentOptions {
   serviceName?: string;
   exporterUrl?: string;
-  enabled?: boolean;       // default: true
-  enableMetrics?: boolean; // default: true
-  setupNodeSdk?: boolean;  // default: false
+  enabled?: boolean;                    // default: true
+  enableMetrics?: boolean;              // default: true
+  setupNodeSdk?: boolean;               // default: false
+  costTracking?: CostTrackingOptions;   // see below
 }
 ```
 
@@ -76,17 +80,19 @@ interface InstrumentOptions {
 | `enabled` | `true` | `false` makes `instrumentMcpServer()` a complete no-op. |
 | `enableMetrics` | `true` | `false` disables the `mcp.tool.*` metrics; tracing is unaffected. Metrics are already a zero-overhead no-op when no `MeterProvider` is registered — this is for opting out even when one *is*. |
 | `setupNodeSdk` | `false` | `true` makes opentel-mcp create and register its own `NodeTracerProvider` (always to stderr; also to `exporterUrl` via OTLP/HTTP if set). `false` (the default) emits spans through whatever `TracerProvider` the host application already registered globally, or drops them silently if none has been — so opentel-mcp never overrides a host app's own OpenTelemetry setup. |
+| `costTracking` | `{ enabled: true, pricingTable: DEFAULT_PRICING, extractor: defaultExtractor }` | Controls [Cost & Token Attribution](/docs/cost-tracking) — see `CostTrackingOptions` below. Any fields omitted from a partial object fall back to their defaults individually. |
 
 <Callout variant="info" title="fingerprinting isn't in this TypeScript interface">
   `src/config.js`'s `resolveOptions()` also reads a `fingerprinting`
   option (boolean, default `true` — see
   [Deep Failure Fingerprinting](/docs/deep-fingerprinting)) and
   `src/instrument.js` uses it at runtime. It's real and it works, but as
-  of this writing it isn't listed in the `InstrumentOptions` TypeScript
+  of v0.5.0 it still isn't listed in the `InstrumentOptions` TypeScript
   interface in `src/index.d.ts` — only in `config.js`'s JSDoc typedef.
   TypeScript consumers may see a type error passing `{ fingerprinting:
-  false }` even though it's honored at runtime. Will be added to
-  `InstrumentOptions` in v0.5.0.
+  false }` even though it's honored at runtime. Not resolved in v0.5.0
+  (`costTracking` was added to the interface instead — `fingerprinting`
+  was not); planned for v0.6.0.
 </Callout>
 
 ### What do I get back from `instrumentMcpServer()`?
@@ -200,11 +206,72 @@ interface FingerprintInputs {
 }
 ```
 
+## What's exported for Cost & Token Attribution?
+
+New in v0.5.0, re-exported at the package root from `src/cost/` the same
+way the fingerprinting exports are — `import { DEFAULT_PRICING,
+defaultExtractor, calculateCost } from 'opentel-mcp'`. See
+[Cost & Token Attribution](/docs/cost-tracking) for how these fit
+together at runtime.
+
+```ts
+const DEFAULT_PRICING: PricingTable; // 15+ models across 5 providers, see src/cost/pricing.js
+
+const defaultExtractor: UsageExtractor;
+
+function calculateCost(
+  inputTokens: number,
+  outputTokens: number,
+  model: string,
+  pricingTable: PricingTable,
+): number | null; // null if model isn't in pricingTable or a token count is invalid
+```
+
+```ts
+interface CostTrackingOptions {
+  enabled?: boolean;              // default: true
+  pricingTable?: PricingTable;    // default: DEFAULT_PRICING
+  extractor?: UsageExtractor;     // default: defaultExtractor
+  budget?: BudgetConfig;          // default: undefined (budget tracking off)
+}
+
+interface ModelPricing {
+  readonly inputPer1M: number;  // USD per 1,000,000 input tokens
+  readonly outputPer1M: number; // USD per 1,000,000 output tokens
+  readonly currency: 'USD';
+}
+
+type PricingTable = Record<string, ModelPricing>;
+
+interface TokenUsage {
+  readonly inputTokens: number;
+  readonly outputTokens: number;
+  readonly totalTokens: number;
+  readonly model?: string; // present only when the extractor found a model name
+}
+
+type UsageExtractor = (toolResult: unknown) => TokenUsage | null;
+
+interface BudgetConfig {
+  readonly perSessionUsd?: number; // cumulative-cost limit per MCP session id
+  readonly perToolUsd?: number;    // cumulative-cost limit per tool name
+}
+```
+
+`calculateCost()` normalizes `model` (lowercases it, strips a leading
+`provider/` prefix) before looking it up in `pricingTable`, and never
+throws — an unrecognized model or an invalid token count resolves to
+`null`, not an exception. `defaultExtractor` also never throws; see
+[Cost & Token Attribution](/docs/cost-tracking) for the shapes it
+recognizes.
+
 ## Where do I go from here?
 
 - [Deep Failure Fingerprinting](/docs/deep-fingerprinting) — what these
   fingerprinting exports are for and how the hashing pipeline works.
-- [Metrics](/docs/metrics) — the four `mcp.tool.*` instruments
+- [Cost & Token Attribution](/docs/cost-tracking) — how
+  `CostTrackingOptions` and the exports above fit together at runtime.
+- [Metrics](/docs/metrics) — the six `mcp.tool.*` instruments
   `instrumentMcpServer()` records.
 - [Silent Failures](/docs/silent-failures) — the `isError` detection
   this whole package exists for.
