@@ -67,6 +67,7 @@ export const DOCS_NAV = [
     items: [
       { href: "/docs/silent-failures", label: "Silent Failures" },
       { href: "/docs/deep-fingerprinting", label: "Deep Failure Fingerprinting" },
+      { href: "/docs/cost-tracking", label: "Cost & Token Attribution" },
     ],
   },
   {

@@ -37,7 +37,8 @@ export default function DocsOverviewPage() {
             CallToolResult.isError
           </code>{" "}
           detection actually does, the metrics and fingerprinting it
-          emits, and how to migrate from raw {"@opentelemetry/api"}{" "}
+          emits, the LLM cost and token attribution it adds as of
+          v0.5.0, and how to migrate from raw {"@opentelemetry/api"}{" "}
           instrumentation.
         </p>
 
