@@ -1,10 +1,10 @@
 import {
+  DollarSign,
   Fingerprint,
   Gauge,
   ShieldOff,
   Sparkles,
   SquareStack,
-  Zap,
 } from "lucide-react";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -24,15 +24,15 @@ const FEATURES = [
   },
   {
     icon: Gauge,
-    title: "Four Metrics Instruments",
+    title: "Six Metrics Instruments",
     description:
-      "Ships counters and histograms out of the box, including mcp.tool.silent_failures, ready for Prometheus, SigNoz, or any OTel-compatible backend.",
+      "Ships counters and histograms out of the box, including mcp.tool.silent_failures and the v0.5.0 mcp.tool.cost.total, ready for Prometheus, SigNoz, or any OTel-compatible backend.",
   },
   {
-    icon: Zap,
-    title: "Zero-Config Auto-Instrumentation",
+    icon: DollarSign,
+    title: "Cost & Token Attribution",
     description:
-      "Wrap your MCP server once and every tools/call gets a span immediately — no manual span management required.",
+      "LLM-wrapping tools get automatic token counts, model detection, and USD cost estimates. Anthropic, OpenAI, Bedrock, Google, DeepSeek supported by default. v0.5.0.",
   },
   {
     icon: Sparkles,

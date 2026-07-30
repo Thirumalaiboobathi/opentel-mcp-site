@@ -11,7 +11,7 @@ import { formatDate } from "@/lib/utils";
 
 const PATH = "/comparison";
 const DATE_PUBLISHED = "2026-07-26";
-const DATE_MODIFIED = "2026-07-26";
+const DATE_MODIFIED = "2026-07-29";
 
 export const metadata: Metadata = buildMetadata({
   title: `Comparison — ${SITE.name}`,
@@ -28,6 +28,7 @@ const ROWS: { label: string; cells: [Cell, Cell] }[] = [
   { label: "Detects isError: true inside a successful response", cells: ["yes", "no"] },
   { label: "Deep failure fingerprinting", cells: ["yes", "no"] },
   { label: "Built-in mcp.tool.* metrics instruments", cells: ["yes", "no"] },
+  { label: "LLM cost tracking on tool calls", cells: ["yes", "no"] },
   { label: "Cardinality-safe metric attributes, structurally enforced", cells: ["yes", "na"] },
   { label: "Never throws into the instrumented handler", cells: ["yes", "unverified"] },
   { label: "Instruments resources/prompts (not just tools)", cells: ["no", "no"] },
