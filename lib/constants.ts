@@ -12,7 +12,7 @@ export const SITE = {
 
 export const PACKAGE = {
   name: "opentel-mcp",
-  version: "0.4.0",
+  version: "0.5.0",
   license: "MIT",
   runtime: "Node.js 20+",
   testCount: 136,

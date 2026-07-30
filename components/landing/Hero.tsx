@@ -16,7 +16,7 @@ export function Hero() {
       <div className="mx-auto grid max-w-[1200px] grid-cols-1 items-center gap-12 px-4 py-20 sm:px-6 lg:grid-cols-2 lg:gap-16 lg:py-28 xl:px-8">
         <div>
           <Badge variant="outline" className="border-brand/40 text-brand">
-            v{PACKAGE.version} — Deep Failure Fingerprinting shipped
+            v{PACKAGE.version} — Cost & Token Attribution shipped
           </Badge>
 
           <h1 className="mt-6 text-[clamp(2rem,5vw,4rem)] leading-[1.05] font-semibold tracking-tight text-foreground">
@@ -30,6 +30,11 @@ export function Hero() {
             </code>{" "}
             buried inside. Standard OpenTelemetry never sees it.{" "}
             {PACKAGE.name} does — and marks the span ERROR.
+          </p>
+
+          <p className="mt-3 max-w-xl text-sm text-muted-foreground">
+            v{PACKAGE.version} also adds automatic LLM cost and token
+            attribution on tool calls that wrap model calls.
           </p>
 
           <div className="mt-8 flex max-w-md items-center justify-between gap-3 rounded-lg border border-border bg-surface px-4 py-3 font-mono text-sm">
