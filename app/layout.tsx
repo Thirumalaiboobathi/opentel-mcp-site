@@ -36,6 +36,9 @@ export const metadata: Metadata = {
     path: "/",
     image: `${SITE.url}/opengraph-image`,
   }),
+  other: {
+    "google-site-verification": "google92f180131040636b",
+  },
 };
 
 export default function RootLayout({
