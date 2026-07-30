@@ -1,33 +1,37 @@
 ---
 slug: "metrics"
 title: "Metrics"
-description: "The four mcp.tool.* OpenTelemetry metrics opentel-mcp emits — calls, errors, silent_failures, and duration — with SigNoz and Prometheus query examples."
+description: "The six mcp.tool.* OpenTelemetry metrics opentel-mcp emits — calls, errors, silent_failures, duration, tokens.total, and cost.total — with SigNoz and Prometheus query examples."
 section: "Reference"
 order: 0
 datePublished: "2026-07-26"
-dateModified: "2026-07-26"
+dateModified: "2026-07-29"
 author: "Thirumalaiboobathi B"
 ---
 
-opentel-mcp emits four OpenTelemetry metrics instruments through
+opentel-mcp emits six OpenTelemetry metrics instruments through
 `@opentelemetry/api`'s Metrics API: `mcp.tool.calls`, `mcp.tool.errors`,
-`mcp.tool.silent_failures`, and `mcp.tool.duration`. All four come from
-`src/metrics.js`'s `setupMeter()`, recorded from the same
-[`isToolResultError()`](/docs/silent-failures) check that marks spans
-`ERROR`, so the metric and the trace never disagree about whether a call
-failed.
+`mcp.tool.silent_failures`, `mcp.tool.duration`, and — new in v0.5.0 —
+`mcp.tool.tokens.total` and `mcp.tool.cost.total`. All six come from
+`src/metrics.js`'s `setupMeter()`. The first four are recorded from the
+same [`isToolResultError()`](/docs/silent-failures) check that marks
+spans `ERROR`, so the metric and the trace never disagree about whether
+a call failed; the two cost/token counters are recorded from
+[Cost & Token Attribution](/docs/cost-tracking)'s `applyCostAttribution()`
+instead, independently of call outcome.
 
 <Callout variant="tip" title="TL;DR">
-  Four instruments, all under the `mcp.tool.*` namespace:
+  Six instruments, all under the `mcp.tool.*` namespace:
   `mcp.tool.calls` (every call), `mcp.tool.errors` (thrown/rejected),
-  `mcp.tool.silent_failures` (`isError: true`), and `mcp.tool.duration`
-  (histogram, milliseconds). Nothing is recorded until your application
-  registers an OpenTelemetry `MeterProvider` — until then, recording
-  through these instruments is a zero-overhead no-op, the default
-  `@opentelemetry/api` behavior.
+  `mcp.tool.silent_failures` (`isError: true`), `mcp.tool.duration`
+  (histogram, milliseconds), `mcp.tool.tokens.total` (counter, tokens),
+  and `mcp.tool.cost.total` (counter, USD). Nothing is recorded until
+  your application registers an OpenTelemetry `MeterProvider` — until
+  then, recording through these instruments is a zero-overhead no-op,
+  the default `@opentelemetry/api` behavior.
 </Callout>
 
-## What are the four instruments?
+## What are the six instruments?
 
 | Metric | Type | Unit | Attributes | Emitted when |
 |---|---|---|---|---|
@@ -35,8 +39,11 @@ failed.
 | `mcp.tool.errors` | Counter | — | `gen_ai.tool.name`, `error.type`[^1] | Handler threw or its promise rejected |
 | `mcp.tool.silent_failures` | Counter | — | `gen_ai.tool.name`[^1] | Result had `isError: true` |
 | `mcp.tool.duration` | Histogram | ms | `gen_ai.tool.name`, `mcp.tool.outcome`[^1] | Every call, on completion |
+| `mcp.tool.tokens.total` | Counter | tokens | `gen_ai.tool.name`, `mcp.tool.model`[^2] | Usage detected in the tool result |
+| `mcp.tool.cost.total` | Counter | USD | `gen_ai.tool.name`, `mcp.tool.model`[^2] | Cost calculated (model resolved in `pricingTable`) |
 
 [^1]: Also carries `mcp.failure.category` when [Deep Failure Fingerprinting](/docs/deep-fingerprinting) classified the failure — see that page for the 8 categories.
+[^2]: `mcp.tool.model` is only added when [Cost & Token Attribution](/docs/cost-tracking)'s extractor detected a model name — the same optional-attribute cardinality pattern `mcp.failure.category` uses on the other four instruments.
 
 `mcp.tool.duration`'s `mcp.tool.outcome` attribute is one of `success`,
 `error`, or `silent_failure` — the same three-way split as the
@@ -100,6 +107,42 @@ dashboard panel querying `mcp.tool.silent_failures` grouped by
 `gen_ai.tool.name` shows which tools are failing silently, and how often,
 without opening a single trace.
 
+## How do I query cost per tool in SigNoz?
+
+<Callout variant="warning" title="Illustrative">
+  Same caveat as above: the metric names and attributes are real, the
+  query text illustrates the shape of a useful query, not a capture from
+  a live SigNoz instance.
+</Callout>
+
+With the same `MeterProvider` registered, a SigNoz dashboard panel
+summing `mcp.tool.cost.total` grouped by `gen_ai.tool.name` over a time
+range shows which tools are actually driving LLM spend:
+
+```
+sum(mcp.tool.cost.total) by (gen_ai.tool.name)
+```
+
+That only reflects calls where [Cost & Token Attribution](/docs/cost-tracking)
+detected a model *and* that model resolved in the configured
+`pricingTable` — see that page for what happens when it doesn't.
+
+## How do I query token spend by model?
+
+Group the same counter — or `mcp.tool.tokens.total` for raw token
+volume instead of dollars — by `mcp.tool.model` (or the co-emitted
+`gen_ai.response.model`, for dashboards already built around the OTel
+GenAI semantic conventions) instead of tool name:
+
+```
+sum(mcp.tool.tokens.total) by (mcp.tool.model)
+```
+
+Useful for answering "which model is actually consuming the tokens,"
+independent of which tool called it — a tool that calls multiple models
+conditionally would otherwise hide that split behind a single
+`gen_ai.tool.name` grouping.
+
 ## How do I export these to Prometheus?
 
 Register a Prometheus exporter as the `MeterProvider`'s reader instead of
@@ -138,5 +181,8 @@ own traffic.
 - [Deep Failure Fingerprinting](/docs/deep-fingerprinting) — the
   `mcp.failure.category` attribute these metrics carry when
   fingerprinting classifies a failure.
+- [Cost & Token Attribution](/docs/cost-tracking) — how
+  `mcp.tool.tokens.total` and `mcp.tool.cost.total` get populated, and
+  the span attributes that go with them.
 - [API Reference](/docs/api-reference) — `enableMetrics` and the rest of
   `instrumentMcpServer()`'s options.
