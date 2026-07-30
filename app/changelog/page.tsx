@@ -18,6 +18,72 @@ const code = (text: string) => (
 
 const VERSIONS = [
   {
+    version: "0.5.0",
+    date: "2026-07-29",
+    href: "tree/v0.5.0",
+    title: "Cost & Token Attribution",
+    items: [
+      <>
+        Major feature: automatic LLM cost and token attribution on MCP
+        tool calls that wrap model calls. See{" "}
+        <Link href="/docs/cost-tracking" className="text-brand hover:underline">
+          Cost & Token Attribution
+        </Link>
+        .
+      </>,
+      <>
+        {code("costTracking")} option (default enabled) on{" "}
+        {code("instrumentMcpServer()")} — recognizes Anthropic, OpenAI,
+        and Bedrock usage field-name conventions, the MCP{" "}
+        {code("_meta.usage")} extension point, and JSON-in-text inside{" "}
+        {code("content[0].text")}. Never throws; unrecognized shapes
+        resolve to {code("null")}.
+      </>,
+      <>
+        New span attributes: {code("mcp.tool.tokens.input")},{" "}
+        {code("mcp.tool.tokens.output")}, {code("mcp.tool.tokens.total")}
+        , {code("mcp.tool.model")}, {code("mcp.tool.cost.usd")}, and{" "}
+        {code("mcp.tool.cost.currency")}, plus {code("gen_ai.response.model")}
+        {" "}co-emitted alongside {code("mcp.tool.model")} for GenAI
+        semantic-convention dashboard compatibility.
+      </>,
+      <>
+        Two new metric instruments, same {code("@opentelemetry/api")}-only
+        pattern as the four existing {code("mcp.tool.*")} metrics:{" "}
+        {code("mcp.tool.tokens.total")} (counter, unit {code("tokens")})
+        and {code("mcp.tool.cost.total")} (counter, unit {code("USD")}).
+      </>,
+      <>
+        Budget guardrails ({code("costTracking.budget")}:{" "}
+        {code("perSessionUsd")}, {code("perToolUsd")}) — observability
+        flags, <strong>not enforcement</strong>. Sets{" "}
+        {code("mcp.tool.cost.budget_exceeded")} /{" "}
+        {code("mcp.tool.cost.budget_scope")} on the span once a
+        configured limit is crossed; never blocks or throws.
+      </>,
+      <>
+        New exports: {code("DEFAULT_PRICING")} (15+ models across five
+        providers — Anthropic, OpenAI, Google, AWS Bedrock, DeepSeek),{" "}
+        {code("defaultExtractor")}, {code("calculateCost")}. New types:{" "}
+        {code("CostTrackingOptions")}, {code("TokenUsage")},{" "}
+        {code("UsageExtractor")}, {code("ModelPricing")},{" "}
+        {code("PricingTable")}, {code("BudgetConfig")}.
+      </>,
+    ],
+    note: (
+      <Callout variant="warning" title="Pricing accuracy and budget scope">
+        {code("DEFAULT_PRICING")} is a convenience default, last verified
+        2026-07-29 — not a maintained price list. Provider pricing
+        changes frequently; production users must override{" "}
+        {code("costTracking.pricingTable")}. Budget tracking is
+        in-memory and per {code("instrumentMcpServer()")} call — it
+        resets on process restart, and session-scoped limits are
+        skipped gracefully (not enforced against a fallback key) for
+        transports with no session id, like stdio.
+      </Callout>
+    ),
+  },
+  {
     version: "0.4.0",
     date: "2026-07-24",
     href: "tree/v0.4.0",
@@ -62,7 +128,11 @@ const VERSIONS = [
         {code("InstrumentOptions")} TypeScript interface in{" "}
         {code("src/index.d.ts")} as of this version. It works at runtime;
         TypeScript consumers may see a type error passing{" "}
-        {code("{ fingerprinting: false }")} anyway. Fixed in v0.5.0. See{" "}
+        {code("{ fingerprinting: false }")} anyway.{" "}
+        <strong>Still not fixed in v0.5.0</strong> — v0.5.0 added{" "}
+        {code("costTracking")} to {code("InstrumentOptions")} instead;
+        {code("fingerprinting")} remains JSDoc-only, now planned for
+        v0.6.0. See{" "}
         <Link href="/docs/api-reference" className="text-brand hover:underline">
           API Reference
         </Link>
@@ -178,7 +248,7 @@ export default function ChangelogPage() {
             description: `Version history for ${PACKAGE.name}.`,
             path: PATH,
             datePublished: "2026-07-26",
-            dateModified: "2026-07-26",
+            dateModified: "2026-07-29",
           }),
           buildBreadcrumbListSchema([
             { name: "Home", path: "/" },
@@ -231,6 +301,12 @@ export default function ChangelogPage() {
             Where do I go from here?
           </h2>
           <ul className="mt-3 list-disc space-y-2 pl-6 text-muted-foreground">
+            <li>
+              <Link href="/docs/cost-tracking" className="text-brand hover:underline">
+                Cost & Token Attribution
+              </Link>{" "}
+              — the full v0.5.0 feature.
+            </li>
             <li>
               <Link href="/docs/deep-fingerprinting" className="text-brand hover:underline">
                 Deep Failure Fingerprinting
