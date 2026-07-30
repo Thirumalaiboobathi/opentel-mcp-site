@@ -181,8 +181,11 @@ refusal on an error. Full type signatures are on the
 `computeFingerprint()`'s `classifiers` and `stackFrames` options aren't
 currently wired through `instrumentMcpServer()`'s own options — using
 them today means calling `computeFingerprint()` directly rather than
-configuring it through `instrumentMcpServer()`. Wiring these through
-`instrumentMcpServer()`'s options is planned for v0.5.0.
+configuring it through `instrumentMcpServer()`. Still not wired through
+as of v0.5.0, which instead added a new top-level `costTracking` option
+(see [Cost & Token Attribution](/docs/cost-tracking)); wiring
+`classifiers`/`stackFrames` through `instrumentMcpServer()`'s options is
+now planned for v0.6.0.
 
 ## Where do I go from here?
 
