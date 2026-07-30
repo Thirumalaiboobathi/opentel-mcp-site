@@ -15,7 +15,7 @@ import { buildBreadcrumbListSchema, buildFAQPageSchema } from "@/lib/schema";
 
 export const metadata: Metadata = buildMetadata({
   title: `FAQ — ${SITE.name}`,
-  description: `${PACKAGE.name} frequently asked questions: silent failures, Deep Failure Fingerprinting, metrics, framework compatibility, and more.`,
+  description: `${PACKAGE.name} frequently asked questions: silent failures, Deep Failure Fingerprinting, Cost & Token Attribution, metrics, framework compatibility, and more.`,
   path: "/faq",
   image: `${SITE.url}/opengraph-image`,
 });
@@ -44,8 +44,9 @@ export default function FaqPage() {
           </h1>
           <p className="mt-4 text-muted-foreground">
             Questions developers ask most about {PACKAGE.name} — silent
-            failures, Deep Failure Fingerprinting, metrics, and framework
-            compatibility. For anything not covered here, see the{" "}
+            failures, Deep Failure Fingerprinting, Cost & Token
+            Attribution, metrics, and framework compatibility. For
+            anything not covered here, see the{" "}
             <Link href="/docs" className="text-brand hover:underline">
               docs
             </Link>

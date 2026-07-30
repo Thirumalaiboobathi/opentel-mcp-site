@@ -40,4 +40,12 @@ items:
     answer: "Yes — pass `{ fingerprinting: false }`. It's on by default (`true`)."
   - question: "Is opentel-mcp free and open source?"
     answer: "Yes, MIT licensed."
+  - question: "How does opentel-mcp track LLM cost on MCP tool calls?"
+    answer: "Shipped in v0.5.0. When a tool result carries recognizable usage data, `applyCostAttribution()` extracts input/output token counts and the model name, then prices them against a `PricingTable` (`DEFAULT_PRICING` by default). It sets `mcp.tool.tokens.*`, `mcp.tool.model`, and — when the model resolves in the pricing table — `mcp.tool.cost.usd`/`mcp.tool.cost.currency` span attributes, plus two counters: `mcp.tool.tokens.total` and `mcp.tool.cost.total`. See [Cost & Token Attribution](/docs/cost-tracking)."
+  - question: "Which LLM providers does opentel-mcp recognize automatically?"
+    answer: "`defaultExtractor` recognizes Anthropic, OpenAI, and Bedrock usage field-name conventions directly, plus the MCP `_meta.usage` extension point and JSON-in-text inside `content[0].text`. `DEFAULT_PRICING` prices models across five providers — Anthropic, OpenAI, Google, AWS Bedrock, and DeepSeek — so once a tool result's usage lands in one of the recognized field-name shapes (DeepSeek's API is OpenAI-compatible, for example), it gets priced. See [Cost & Token Attribution](/docs/cost-tracking) for the full detection order."
+  - question: "Does opentel-mcp enforce budgets or just observe them?"
+    answer: "Observability only. `costTracking.budget` (`perSessionUsd`/`perToolUsd`) never blocks a tool call and never throws — crossing a limit only sets `mcp.tool.cost.budget_exceeded: true` and `mcp.tool.cost.budget_scope` on the span. Enforcing the limit is left entirely to whatever consumes that span attribute downstream."
+  - question: "How accurate is opentel-mcp's default pricing table?"
+    answer: "`DEFAULT_PRICING` was last verified 2026-07-29 and covers 15+ models across five providers as a convenience default, not a maintained price list. Provider pricing changes frequently; production users must override `costTracking.pricingTable` for accurate cost figures."
 ---
