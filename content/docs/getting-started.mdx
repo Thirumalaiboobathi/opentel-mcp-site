@@ -1,20 +1,23 @@
 ---
 slug: "getting-started"
-title: "Getting Started"
-description: "Install opentel-mcp, wrap an MCP server with instrumentMcpServer(), and see your first OpenTelemetry trace — real, tested quickstart code."
+title: "OpenTelemetry MCP Server Instrumentation"
+description: "OpenTelemetry MCP server instrumentation in one function call: install opentel-mcp, wrap your server with instrumentMcpServer(), see your first trace."
 section: "Introduction"
 order: 0
 datePublished: "2026-07-26"
-dateModified: "2026-07-26"
+dateModified: "2026-07-31"
 author: "Thirumalaiboobathi B"
 ---
 
-opentel-mcp instruments an MCP server's `tools/call` handler with one
-function call: `instrumentMcpServer(server, options)`. This page walks
-through installing the package, wrapping a minimal MCP server, and
-seeing a real OpenTelemetry trace print to your terminal — the same
-30-second quickstart from opentel-mcp's own README, copied verbatim so
-what's here is exactly what's tested and shipped.
+OpenTelemetry MCP server instrumentation with opentel-mcp starts with
+one function call: `instrumentMcpServer(server, options)`, wrapping an
+MCP server's `tools/call` handler so every call gets a span — including
+the `CallToolResult.isError` check that sets span status to `ERROR` on
+the [silent failures](/docs/silent-failures) standard instrumentation
+misses. This page walks through installing the package, wrapping a
+minimal MCP server, and seeing a real trace print to your terminal —
+the same 30-second quickstart from opentel-mcp's own README, copied
+verbatim so what's here is exactly what's tested and shipped.
 
 <Callout variant="tip" title="TL;DR">
   `npm install opentel-mcp @opentelemetry/api`, call
@@ -106,7 +109,9 @@ past local development.
 
 - [Silent Failures](/docs/silent-failures) — what changes on this same
   span when a tool call returns `isError: true` instead of succeeding.
+- [Deep Failure Fingerprinting](/docs/deep-fingerprinting) — the stable
+  16-character identifier attached to every failure on that same span.
 - [Metrics](/docs/metrics) — register a `MeterProvider` alongside the
-  tracer above to get the four `mcp.tool.*` instruments too.
+  tracer above to get the six `mcp.tool.*` instruments too.
 - [Migration Guide](/docs/migration) — already have `@opentelemetry/api`
   instrumentation on your MCP server? Start here instead.

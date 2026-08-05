@@ -36,8 +36,8 @@ export const metadata: Metadata = {
     path: "/",
     image: `${SITE.url}/opengraph-image`,
   }),
-  other: {
-    "google-site-verification": "google92f180131040636b",
+   verification: {
+    google: "SVjDl7Lc-QlBN5NuJX_ZDg1iewnz83YpQ5A_kWgM_kM",
   },
 };
 

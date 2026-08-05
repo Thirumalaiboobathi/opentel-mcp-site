@@ -1,21 +1,22 @@
 ---
 slug: "silent-failures"
-title: "Silent Failures"
-description: "MCP tool calls can return isError: true inside a successful JSON-RPC 2.0 response. Why OpenTelemetry misses that, and how opentel-mcp catches it."
+title: "MCP Silent Failures"
+description: "MCP silent failures: CallToolResult.isError=true inside a successful JSON-RPC response, invisible unless span status is checked. opentel-mcp catches it."
 section: "Concepts"
 order: 0
 datePublished: "2026-07-26"
-dateModified: "2026-07-26"
+dateModified: "2026-07-31"
 author: "Thirumalaiboobathi B"
 ---
 
-A silent failure is a Model Context Protocol (MCP) tool call whose
-JSON-RPC 2.0 response completes successfully while the tool result itself
-reports failure through `CallToolResult.isError`. Standard OpenTelemetry
-instrumentation only looks at whether the JSON-RPC call completed — it
-doesn't parse the result payload — so it marks the span OK even though the
-tool failed. [opentel-mcp](https://www.npmjs.com/package/opentel-mcp)
-checks `isError` directly and marks the span `ERROR` instead.
+MCP failure detection has a blind spot: MCP silent failures, where a
+Model Context Protocol tool call's JSON-RPC 2.0 response completes
+successfully while `CallToolResult.isError` reports failure inside it.
+Standard OpenTelemetry instrumentation sets span status from whether
+the JSON-RPC call itself completed, never from the result payload — so
+it marks the span OK even though the tool failed.
+[opentel-mcp](https://www.npmjs.com/package/opentel-mcp) checks
+`isError` directly and sets that span status to `ERROR` instead.
 
 <Callout variant="tip" title="TL;DR">
   MCP lets a tool report failure two ways: a JSON-RPC protocol error, or a
