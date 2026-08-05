@@ -80,10 +80,13 @@ const server = instrumentMcpServer(new McpServer({ name: 'my-server', version: '
 interface InstrumentOptions {
   serviceName?: string;
   exporterUrl?: string;
-  enabled?: boolean;                    // default: true
-  enableMetrics?: boolean;              // default: true
-  setupNodeSdk?: boolean;               // default: false
-  costTracking?: CostTrackingOptions;   // see below
+  enabled?: boolean;                        // default: true
+  enableMetrics?: boolean;                  // default: true
+  setupNodeSdk?: boolean;                   // default: false
+  costTracking?: CostTrackingOptions;       // see below
+  fingerprinting?: boolean;                 // default: true — deep-failure fingerprinting
+  thrashDetection?: Partial<ThrashConfig>;  // default: enabled — see README's "Agent Thrash Detection (v0.6.0+)" section for ThrashConfig's full fields
+  schemaDrift?: Partial<SchemaDriftConfig>; // default: enabled — see README's "Tool schema drift detection (v0.8.0+)" section for SchemaDriftConfig's full fields
 }
 ```
 
