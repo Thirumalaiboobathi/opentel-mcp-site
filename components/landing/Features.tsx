@@ -1,7 +1,9 @@
 import {
+  Diff,
   DollarSign,
   Fingerprint,
   Gauge,
+  Repeat,
   ShieldOff,
   Sparkles,
   SquareStack,
@@ -45,6 +47,18 @@ const FEATURES = [
     title: "Cardinality-Safe Labels",
     description:
       "A frozen METRIC_SAFE_ATTRIBUTES array constrains metric attributes, preventing high-cardinality label explosions in your backend.",
+  },
+  {
+    icon: Repeat,
+    title: "Agent Thrash Detection",
+    description:
+      "Flags a tool failing with the same fingerprint repeatedly in one session — the pattern an agent produces retrying a call that can't succeed. Channel-aware thresholds set a different bar per failure origin, and wasted tokens and cost for the whole retry loop attribute to one event instead of scattering across N failed spans. v0.6.0, channel-aware thresholds in v0.7.0.",
+  },
+  {
+    icon: Diff,
+    title: "Tool Schema Drift Detection",
+    description:
+      "Watches tools/list and flags when a tool's inputSchema changes between observations, connecting otherwise-inexplicable agent failures back to the schema changing under you. v0.8.0.",
   },
 ] as const;
 
