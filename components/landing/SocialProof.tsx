@@ -49,16 +49,33 @@ export function SocialProof() {
             </CardContent>
           </Card>
           <Card size="sm">
-            <CardContent className="flex items-center justify-between gap-2">
-              <span className="text-sm text-muted-foreground">
-                npm downloads
-              </span>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={`https://img.shields.io/npm/dw/${PACKAGE.name}?style=flat-square&label=&color=8B7FD8`}
-                alt={`Weekly npm downloads for ${PACKAGE.name}`}
-                height={20}
-              />
+            <CardContent className="flex flex-col gap-3">
+              <ul className="flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-xs tracking-wide text-text-tertiary uppercase">
+                <li>
+                  <span className="text-brand">1,000+</span> total downloads
+                </li>
+                <li aria-hidden="true">·</li>
+                <li>
+                  <span className="text-brand">{PACKAGE.testCount}</span>{" "}
+                  tests
+                </li>
+                <li aria-hidden="true">·</li>
+                <li>
+                  <span className="text-brand">{PACKAGE.license}</span>{" "}
+                  licensed
+                </li>
+              </ul>
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-sm text-muted-foreground">
+                  npm downloads (weekly)
+                </span>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={`https://img.shields.io/npm/dw/${PACKAGE.name}?style=flat-square&label=&color=8B7FD8`}
+                  alt={`Weekly npm downloads for ${PACKAGE.name}`}
+                  height={20}
+                />
+              </div>
             </CardContent>
           </Card>
         </div>
