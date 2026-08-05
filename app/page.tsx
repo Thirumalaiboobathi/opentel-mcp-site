@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 
 import { ComparisonTable } from "@/components/landing/ComparisonTable";
 import { CTA } from "@/components/landing/CTA";
+import { DownloadsMilestone } from "@/components/landing/DownloadsMilestone";
 import { Features } from "@/components/landing/Features";
 import { Hero } from "@/components/landing/Hero";
 import { HowItWorks } from "@/components/landing/HowItWorks";
@@ -10,13 +11,30 @@ import { ProblemStatement } from "@/components/landing/ProblemStatement";
 import { SocialProof } from "@/components/landing/SocialProof";
 import { TrustBar } from "@/components/landing/TrustBar";
 import { JsonLd } from "@/components/seo/JsonLd";
+import { faq } from "@/.velite";
 import { PACKAGE } from "@/lib/constants";
 import { buildMetadata } from "@/lib/metadata";
 import {
+  buildFAQPageSchema,
   buildHowToSchema,
   buildSoftwareApplicationSchema,
   buildSoftwareSourceCodeSchema,
 } from "@/lib/schema";
+
+// A small, representative subset of the real FAQ content (content/faq/faq.mdx)
+// — not invented copy — picked to cover the questions most relevant to the
+// homepage: what the package is, the silent-failure gap, how it differs from
+// raw OpenTelemetry, and Deep Failure Fingerprinting.
+const HOMEPAGE_FAQ_QUESTIONS = [
+  "What is opentel-mcp?",
+  "What is a silent failure in an MCP server?",
+  "How does opentel-mcp differ from the standard OpenTelemetry Node.js SDK?",
+  "What is Deep Failure Fingerprinting?",
+] as const;
+
+const homepageFaqItems = faq.items.filter((item) =>
+  (HOMEPAGE_FAQ_QUESTIONS as readonly string[]).includes(item.question)
+);
 
 export const metadata: Metadata = buildMetadata({
   title: `${PACKAGE.name} — OpenTelemetry for MCP silent failures`,
@@ -31,6 +49,12 @@ export default function Home() {
         data={[
           buildSoftwareApplicationSchema(),
           buildSoftwareSourceCodeSchema(),
+          buildFAQPageSchema(
+            homepageFaqItems.map((item) => ({
+              question: item.question,
+              answer: item.answer,
+            }))
+          ),
           buildHowToSchema({
             name: "How to instrument an MCP server with opentel-mcp",
             description:
@@ -53,6 +77,7 @@ export default function Home() {
         ]}
       />
       <Hero />
+      <DownloadsMilestone />
       <TrustBar />
       <ProblemStatement />
       <Features />
