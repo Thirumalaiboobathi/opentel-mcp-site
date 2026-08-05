@@ -266,18 +266,20 @@ const VERSIONS = [
       </>,
     ],
     note: (
-      <Callout variant="warning" title="Known type-declaration gap in v0.4.0">
-        The {code("fingerprinting")} option is implemented and defaults to{" "}
-        {code("true")} in {code("src/config.js")} and{" "}
-        {code("src/instrument.js")}, but isn&apos;t listed in the{" "}
+      <Callout variant="warning" title="Type-declaration gap in v0.4.0 — since resolved">
+        The {code("fingerprinting")} option was implemented and defaulted
+        to {code("true")} in {code("src/config.js")} and{" "}
+        {code("src/instrument.js")}, but wasn&apos;t listed in the{" "}
         {code("InstrumentOptions")} TypeScript interface in{" "}
-        {code("src/index.d.ts")} as of this version. It works at runtime;
-        TypeScript consumers may see a type error passing{" "}
+        {code("src/index.d.ts")} as of this version — it worked at
+        runtime, but TypeScript consumers could see a type error passing{" "}
         {code("{ fingerprinting: false }")} anyway.{" "}
-        <strong>Still not fixed in v0.5.0</strong> — v0.5.0 added{" "}
-        {code("costTracking")} to {code("InstrumentOptions")} instead;
-        {code("fingerprinting")} remains JSDoc-only, now planned for
-        v0.6.0. See{" "}
+        <strong>Resolved in v0.6.0</strong>: {code("fingerprinting?: boolean")}{" "}
+        landed on {code("InstrumentOptions")}. A narrower, related gap is{" "}
+        <strong>still not resolved as of v0.8.0</strong>:{" "}
+        {code("computeFingerprint()")}&apos;s {code("classifiers")}/{code("stackFrames")}{" "}
+        options remain unwired through {code("instrumentMcpServer()")}&apos;s
+        own options — no target version has been set for that part. See{" "}
         <Link href="/docs/api-reference" className="text-brand hover:underline">
           API Reference
         </Link>
