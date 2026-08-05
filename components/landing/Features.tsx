@@ -24,9 +24,9 @@ const FEATURES = [
   },
   {
     icon: Gauge,
-    title: "Six Metrics Instruments",
+    title: "Twelve Metrics Instruments",
     description:
-      "Ships counters and histograms out of the box, including mcp.tool.silent_failures and the v0.5.0 mcp.tool.cost.total, ready for Prometheus, SigNoz, or any OTel-compatible backend.",
+      "Ships counters and histograms out of the box — call/error/duration counts, cost and token totals, five Agent Thrash Detection loop instruments, and schema drift detection — ready for Prometheus, SigNoz, or any OTel-compatible backend.",
   },
   {
     icon: DollarSign,

@@ -12,10 +12,10 @@ export const SITE = {
 
 export const PACKAGE = {
   name: "opentel-mcp",
-  version: "0.5.0",
+  version: "0.8.0",
   license: "MIT",
   runtime: "Node.js 20+",
-  testCount: 136,
+  testCount: 636,
   npm: "https://www.npmjs.com/package/opentel-mcp",
   github: "https://github.com/Thirumalaiboobathi/opentel-mcp",
   githubIssues: "https://github.com/Thirumalaiboobathi/opentel-mcp/issues",
