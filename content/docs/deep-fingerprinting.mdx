@@ -1,21 +1,24 @@
 ---
 slug: "deep-fingerprinting"
-title: "Deep Failure Fingerprinting"
-description: "How opentel-mcp v0.4.0 groups identical failures with a SHA-256-based, 16-hex-char fingerprint, and why it's structurally cardinality-safe."
+title: "MCP Error Fingerprinting"
+description: "MCP error fingerprinting: opentel-mcp groups identical CallToolResult.isError and thrown failures into one SHA-256 ID — cardinality-safe by construction."
 section: "Concepts"
 order: 1
 datePublished: "2026-07-26"
-dateModified: "2026-07-26"
+dateModified: "2026-07-31"
 author: "Thirumalaiboobathi B"
 ---
 
-Deep Failure Fingerprinting, shipped in opentel-mcp v0.4.0, computes a
-stable 16-character identifier for every thrown error and every
-[silent failure](/docs/silent-failures) (`isError: true`), so ten calls
-that fail the same underlying way — even with different user IDs,
-timestamps, or UUIDs in the error message — group under one fingerprint
-instead of showing up as ten unrelated errors. It runs synchronously,
-locally, with no network call, and never throws.
+MCP error fingerprinting is what turns a flood of unrelated-looking
+failures into groups: opentel-mcp's Deep Failure Fingerprinting,
+shipped in v0.4.0, computes a stable 16-character identifier for every
+thrown error and every `CallToolResult.isError: true` tool-level
+failure, attached as span attributes alongside the span status that
+[Silent Failures](/docs/silent-failures) already marks `ERROR`. Ten
+calls that fail the same underlying way — even with different user
+IDs, timestamps, or UUIDs in the error message — group under one
+fingerprint instead of showing up as ten unrelated errors. It runs
+synchronously, locally, with no network call, and never throws.
 
 <Callout variant="tip" title="TL;DR">
   Every failure gets a `mcp.failure.fingerprint` (16 hex chars, SHA-256
@@ -181,11 +184,12 @@ refusal on an error. Full type signatures are on the
 `computeFingerprint()`'s `classifiers` and `stackFrames` options aren't
 currently wired through `instrumentMcpServer()`'s own options — using
 them today means calling `computeFingerprint()` directly rather than
-configuring it through `instrumentMcpServer()`. Still not wired through
-as of v0.5.0, which instead added a new top-level `costTracking` option
-(see [Cost & Token Attribution](/docs/cost-tracking)); wiring
-`classifiers`/`stackFrames` through `instrumentMcpServer()`'s options is
-now planned for v0.6.0.
+configuring it through `instrumentMcpServer()`. **Still not wired
+through as of v0.8.0** — `instrumentMcpServer()` gained `costTracking`
+(v0.5.0), `thrashDetection` (v0.6.0), and `schemaDrift` (v0.8.0) options
+in the releases since, but not this one. No target version has been set
+for wiring `classifiers`/`stackFrames` through
+`instrumentMcpServer()`'s options.
 
 ## Where do I go from here?
 
