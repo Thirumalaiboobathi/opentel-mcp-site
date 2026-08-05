@@ -1,6 +1,7 @@
 import {
   Diff,
   DollarSign,
+  Eye,
   Fingerprint,
   Gauge,
   Repeat,
@@ -59,6 +60,12 @@ const FEATURES = [
     title: "Tool Schema Drift Detection",
     description:
       "Watches tools/list and flags when a tool's inputSchema changes between observations, connecting otherwise-inexplicable agent failures back to the schema changing under you. v0.8.0.",
+  },
+  {
+    icon: Eye,
+    title: "Two-Axis Observation Contract",
+    description:
+      "getObservationState() returns toolOutcome (success/failure/unknown counts) and observationIntegrity ('DEGRADED' | 'UNKNOWN') — whether this library's own signal can be trusted right now, separate from whether any tool call failed. Closes the case where instrumentation silently no-ops with no TracerProvider ever registered, making a failing tool indistinguishable from a healthy one. v0.8.0.",
   },
 ] as const;
 

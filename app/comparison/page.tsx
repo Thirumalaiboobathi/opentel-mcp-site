@@ -31,6 +31,7 @@ const ROWS: { label: string; cells: [Cell, Cell] }[] = [
   { label: "LLM cost tracking on tool calls", cells: ["yes", "no"] },
   { label: "Detects an agent retrying the same failure repeatedly", cells: ["yes", "no"] },
   { label: "Detects a tool's input schema changing between observations", cells: ["yes", "no"] },
+  { label: "Detects its own instrumentation silently no-op'ing", cells: ["yes", "no"] },
   { label: "Cardinality-safe metric attributes, structurally enforced", cells: ["yes", "na"] },
   { label: "Never throws into the instrumented handler", cells: ["yes", "unverified"] },
   { label: "Instruments resources/prompts (not just tools)", cells: ["no", "no"] },
