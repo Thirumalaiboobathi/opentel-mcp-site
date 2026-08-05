@@ -18,6 +18,151 @@ const code = (text: string) => (
 
 const VERSIONS = [
   {
+    version: "0.8.0",
+    date: "2026-08-05",
+    href: "tree/v0.8.0",
+    title: "Schema drift, observation contract, sampling signal",
+    items: [
+      <>
+        Added: tool schema drift detection. Watches every{" "}
+        {code("tools/list")} response, hashes each tool&apos;s{" "}
+        {code("inputSchema")} (never {code("description")}), and flags
+        changes against the last-observed hash for that tool. Six drift
+        kinds: {code("field_added")}, {code("field_removed")},{" "}
+        {code("type_changed")}, {code("required_changed")},{" "}
+        {code("multiple")}, {code("unknown")}. New{" "}
+        {code("mcp.tool.schema_drift.detected")} counter and matching span
+        event on a new {code("tools/list")} span, plus a{" "}
+        {code("schemaDrift")} config block ({code("enabled")}, default{" "}
+        {code("true")}; {code("maxTrackedTools")}, default {code("1000")}
+        ), each overridable via {code("OTEL_MCP_SCHEMA_DRIFT_*")} env vars.
+        Full design: ADR 010 ({code("docs/adr/010-schema-drift.md")}).
+      </>,
+      <>
+        Added: {code("getObservationState()")}, a two-axis observation
+        contract returning {code("toolOutcome")} ({code("{ success, failure, unknown }")}
+        ) and {code("observationIntegrity")} ({code("'DEGRADED' | 'UNKNOWN'")}
+        ) — detects the case where instrumentation silently no-ops because
+        no {code("TracerProvider")}/{code("MeterProvider")} was ever
+        registered, so a failed tool call in that state doesn&apos;t read
+        as indistinguishable from one that never failed. Prompted by
+        external review from Massimiliano Brighindi. Full design: ADR 008
+        ({code("docs/adr/008-observation-liveness.md")}, &quot;Update
+        (2026-08-05)&quot; section).
+      </>,
+      <>
+        Added: {code("mcp.tool.thrash_detected")} boolean span attribute,
+        set alongside the existing {code("mcp.loop.detected")} span event
+        — gives an OpenTelemetry Collector {code("tailsamplingprocessor")}{" "}
+        an attribute-level signal to key a {code("boolean_attribute")}{" "}
+        policy on, deliberately named differently from the{" "}
+        {code("mcp.tool.loop.detected")} metric counter. No new
+        cost-threshold attribute or config —{" "}
+        {code("mcp.tool.cost.usd")}/{code("mcp.tool.cost.budget_exceeded")}{" "}
+        (v0.5.0) already suffice; the threshold itself lives in the
+        Collector policy YAML. Full design: ADR 011 ({code("docs/adr/011-cost-aware-sampling.md")}
+        ).
+      </>,
+    ],
+    note: (
+      <Callout variant="critical" title="Behavior change on upgrade — read before updating">
+        Because {code("schemaDrift.enabled")} defaults to {code("true")},
+        the existing instrument-first requirement now also covers{" "}
+        {code("tools/list")}. Low-level {code("Server")} users who call{" "}
+        {code("setRequestHandler(ListToolsRequestSchema, ...)")} before{" "}
+        {code("instrumentMcpServer()")} will now get{" "}
+        {code("INSTRUMENT_FIRST_ERROR")} where they previously did not —
+        no other code change required to hit it.{" "}
+        <strong>{code("McpServer")} users are unaffected</strong> (it
+        registers {code("tools/list")} and {code("tools/call")} together,
+        atomically). Migration: reorder the {code("tools/list")}{" "}
+        registration to after {code("instrumentMcpServer()")}, or pass{" "}
+        {code("schemaDrift: { enabled: false }")}.
+      </Callout>
+    ),
+  },
+  {
+    version: "0.7.0",
+    date: "2026-08-03",
+    href: "tree/v0.7.0",
+    title: "Channel-aware thrash thresholds",
+    items: [
+      <>
+        Added: {code("mcp.failure.channel")} span attribute classifying
+        where a {code("tools/call")} failure originated —{" "}
+        {code("execution")}, {code("protocol.input")},{" "}
+        {code("protocol.not_found")}, {code("protocol.output")},{" "}
+        {code("protocol.other")}, {code("unknown")}. Agent Thrash Detection
+        picks a threshold per channel instead of treating every repeat
+        identically.
+      </>,
+      <>
+        Added: {code("thrashDetection.inputThreshold")} (env{" "}
+        {code("OTEL_MCP_THRASH_INPUT_THRESHOLD")}, default {code("5")}) —
+        a higher bar for {code("protocol.input")}, since an agent retrying
+        with adjusted arguments may be converging on a correct call.
+      </>,
+      <>
+        Added: {code("thrashDetection.notFoundThreshold")} (env{" "}
+        {code("OTEL_MCP_THRASH_NOT_FOUND_THRESHOLD")}, default {code("1")}
+        ) — an immediate flag; retrying a tool name that doesn&apos;t exist
+        is never convergence.
+      </>,
+      <>
+        Added: a {code("classifyFailureChannel()")} recovery path for the
+        high-level {code("McpServer")}, reading the{" "}
+        {code("MCP error {code}: ")} wrapper back out of errors{" "}
+        {code("McpServer")} already converted to {code("isError: true")}{" "}
+        before this library ever sees them.
+      </>,
+      <>
+        Fixed: {code("protocol.output")} failures — the tool&apos;s own
+        output failing its declared output schema, the server author&apos;s
+        bug, unfixable by any argument the agent supplies — are now
+        excluded from Agent Thrash Detection entirely.{" "}
+        <strong>
+          This was a false positive present in every published version
+          through v0.6.1.
+        </strong>
+      </>,
+      <>
+        Unchanged: the default {code("threshold")} ({code("3")}) still
+        applies to {code("execution")}, {code("protocol.other")}, and{" "}
+        {code("unknown")}.
+      </>,
+    ],
+    note: (
+      <Callout variant="warning" title="Reachability differs by server API">
+        The low-level {code("Server")} reaches all six{" "}
+        {code("mcp.failure.channel")} values directly. The high-level{" "}
+        {code("McpServer")} reaches the protocol channels only through the
+        recovery path above, which is coupled to the installed SDK&apos;s
+        exact error-message prose and degrades safely to {code("execution")}{" "}
+        (never a wrong specific answer) if that prose changes.
+      </Callout>
+    ),
+  },
+  {
+    version: "0.6.1",
+    date: "2026-08-03",
+    href: "tree/v0.6.1",
+    title: "TypeScript declaration fix",
+    items: [
+      <>
+        Fixed: {code("src/index.d.ts")} re-exported values ({code("computeFingerprint")}
+        , {code("toSpanAttributes")}, {code("ATTRIBUTE_KEYS")},{" "}
+        {code("METRIC_SAFE_ATTRIBUTES")}, {code("DEFAULT_CLASSIFIERS")},{" "}
+        {code("DEFAULT_PRICING")}, {code("defaultExtractor")},{" "}
+        {code("calculateCost")}) from six {code(".js")} modules that had no
+        corresponding {code(".d.ts")} file, so any consumer with{" "}
+        {code("strict")}/{code("noImplicitAny")} got a {code("TS7016")}{" "}
+        error just from importing the package. Pre-existing since v0.4.0
+        (fingerprinting) and v0.5.0 (cost tracking) — first caught
+        verifying the v0.6.0 published tarball.
+      </>,
+    ],
+  },
+  {
     version: "0.5.0",
     date: "2026-07-29",
     href: "tree/v0.5.0",
