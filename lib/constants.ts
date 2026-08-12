@@ -12,10 +12,10 @@ export const SITE = {
 
 export const PACKAGE = {
   name: "opentel-mcp",
-  version: "0.8.0",
+  version: "0.10.0",
   license: "MIT",
   runtime: "Node.js 20+",
-  testCount: 636,
+  testCount: 748,
   npm: "https://www.npmjs.com/package/opentel-mcp",
   github: "https://github.com/Thirumalaiboobathi/opentel-mcp",
   githubIssues: "https://github.com/Thirumalaiboobathi/opentel-mcp/issues",
@@ -68,6 +68,7 @@ export const DOCS_NAV = [
       { href: "/docs/silent-failures", label: "Silent Failures" },
       { href: "/docs/deep-fingerprinting", label: "Deep Failure Fingerprinting" },
       { href: "/docs/cost-tracking", label: "Cost & Token Attribution" },
+      { href: "/docs/instance-state", label: "Tracker State Under Stateless HTTP" },
     ],
   },
   {

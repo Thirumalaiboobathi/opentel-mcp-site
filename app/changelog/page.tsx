@@ -18,8 +18,153 @@ const code = (text: string) => (
 
 const VERSIONS = [
   {
+    version: "0.10.0",
+    date: "2026-08-11",
+    href: "tree/v0.10.0",
+    title: "MCP v2 support, hardened server detection",
+    items: [
+      <>
+        Changed: {code("detectServerKind()")} now additionally requires an{" "}
+        {code("McpServer")}-shaped object&apos;s {code(".server")} property
+        to be {code("instanceof")} a real, resolved {code("Server")} class
+        from a supported SDK — not merely an object exposing a{" "}
+        {code("setRequestHandler")} method. An object that passes the outer
+        shape check but fails that instanceof check now throws at{" "}
+        {code("instrumentMcpServer()")} call time, instead of succeeding
+        and producing zero telemetry — a plain {code("Error")}, not a
+        named or exported error class (internally tracked as{" "}
+        {code("UNWRAPPABLE_MCPSERVER_ERROR")}, but that identifier is
+        neither exported nor catchable — only the message string is
+        real), so it can&apos;t be caught by type or a {code(".code")}{" "}
+        property. No escape hatch was added. Closes known-gaps entry 7.
+      </>,
+      <>
+        Added: {code("@modelcontextprotocol/server")} (MCP v2, protocol
+        revision 2026-07-28) support — two separate, OPTIONAL peer
+        dependencies ({code("@modelcontextprotocol/sdk")} for v1,{" "}
+        {code("@modelcontextprotocol/server")} for v2), install whichever
+        one(s) you actually use. Same {code("Server")}/{code("McpServer")}{" "}
+        API shapes as v1; detection and wrapping resolved automatically,
+        once per {code("instrumentMcpServer()")} call. Spans, standard
+        attributes (including {code("jsonrpc.request.id")}, now read from
+        v2&apos;s {code("ctx.mcpReq.id")}), deep failure fingerprinting, and{" "}
+        {code("mcp.failure.channel")}/{code("mcp.failure.validation_paths")}{" "}
+        classification all work the same as v1. Full design:{" "}
+        <a
+          href={`${PACKAGE.github}/blob/main/docs/adr/015-mcp-v2-support.md`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-brand hover:underline"
+        >
+          ADR 015
+        </a>
+        .
+      </>,
+      <>
+        Fixed: {code("isSingleConnectionTransport()")} no longer
+        auto-detects the transport {code("createMcpHandler")} builds
+        internally ({code("PerRequestHTTPServerTransport")}) as
+        single-connection — it now requires positive confirmation (
+        {code("transport.constructor.name === 'StdioServerTransport'")})
+        for v2 specifically, closing a confirmed false positive.{" "}
+        {code("thrashConnectionFallbackSessionId")} is also now
+        registry-backed via {code("instanceKey")}, so the fallback session
+        id is shared across repeated {code("instrumentMcpServer()")} calls
+        instead of regenerated fresh on every one. Together, these fix
+        known-gaps entry 8 outright and close entry 6&apos;s
+        fallback-id half — entry 6 itself is partially fixed, not closed; a
+        structural limitation survives (see{" "}
+        <Link href="/docs/instance-state" className="text-brand hover:underline">
+          Tracker State Under Stateless HTTP
+        </Link>
+        ). One narrower thing stays open: the internal flag
+        tracking whether a server has ever proven itself session-aware
+        isn&apos;t registry-backed yet — see{" "}
+        <Link href="/docs/instance-state" className="text-brand hover:underline">
+          Tracker State Under Stateless HTTP
+        </Link>
+        .
+      </>,
+    ],
+    note: (
+      <Callout variant="critical" title="Behavior change on upgrade — read before updating">
+        An {code("McpServer")}-shaped object whose {code(".server")} isn&apos;t
+        a recognized {code("Server")} instance from either supported SDK now
+        throws — a plain {code("Error")}, not a named or exported error
+        class, so it can&apos;t be caught by type or a {code(".code")}{" "}
+        property — instead of silently instrumenting nothing. If you hit this on an object you believe
+        genuinely is a {code("Server")}/{code("McpServer")}, suspect a
+        duplicate or mismatched SDK install (check for multiple resolved
+        copies — {code("npm dedupe")} — or confirm normal{" "}
+        {code("node_modules")} resolution from wherever opentel-mcp itself
+        is installed, if it&apos;s a monorepo/hoisting issue rather than a
+        duplicate). A real {code("Server")}/{code("McpServer")} from a
+        single, consistently-resolved SDK install is unaffected.
+      </Callout>
+    ),
+  },
+  {
+    version: "0.9.0",
+    date: "2026-08-10",
+    href: "tree/v0.9.0",
+    title: "instanceKey, broadened auth classifier",
+    items: [
+      <>
+        Fixed: the {code("auth")} failure classifier missed &quot;permission
+        denied&quot; and &quot;access denied&quot; — standard Unix/git/AWS
+        IAM/GCP phrasing for a permission failure — recognizing only
+        HTTP-status-derived wording ({code("unauthorized")},{" "}
+        {code("forbidden")}, {code("authenticat(e|ion)")}), 401/403 codes,
+        and known auth-library error names. Now also matches &quot;not
+        authorized&quot;, &quot;permission(s) denied&quot;, &quot;access
+        denied&quot;, &quot;insufficient permission(s)&quot;, and Node&apos;s{" "}
+        {code("EACCES")}/{code("EPERM")}. Does not amend ADR 006&apos;s
+        closed 8-category taxonomy — {code("auth")} already existed; this
+        is pattern coverage for when it fires.
+      </>,
+      <>
+        Added: {code("instanceKey")}, a string option on{" "}
+        {code("instrumentMcpServer()")} (or the{" "}
+        {code("OTEL_MCP_INSTANCE_KEY")} env var) that lets repeated{" "}
+        {code("instrumentMcpServer()")} calls sharing the same key share
+        Agent Thrash Detection, budget tracking, schema drift detection,
+        and the {code("toolOutcome")} counter&apos;s state, instead of each
+        call constructing all four fresh. Fixes the gap under
+        &quot;stateless&quot; Streamable HTTP deployments (a fresh{" "}
+        {code("Server")}/{code("McpServer")} re-instrumented per request).
+        Backed by a bounded, TTL-evicting registry (1,000 keys/process, 24h
+        TTL renewed on use). Omitting it (the default) is byte-identical to
+        every prior version. Full design:{" "}
+        <a
+          href={`${PACKAGE.github}/blob/main/docs/adr/012-tracker-lifecycle-and-shared-state.md`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-brand hover:underline"
+        >
+          ADR 012
+        </a>
+        . See{" "}
+        <Link href="/docs/instance-state" className="text-brand hover:underline">
+          Tracker State Under Stateless HTTP
+        </Link>
+        .
+      </>,
+    ],
+    note: (
+      <Callout variant="critical" title="Fingerprint values changed on upgrade for auth-classified messages">
+        Because {code("category")} is a hashed input to{" "}
+        {code("computeFingerprint()")}, the broadened {code("auth")}{" "}
+        classifier above changes {code("mcp.failure.fingerprint")} for any
+        message that now classifies as {code("auth")} instead of{" "}
+        {code("internal")}. If you alert or dashboard on a specific
+        fingerprint value for a permission error, expect a new value after
+        upgrading.
+      </Callout>
+    ),
+  },
+  {
     version: "0.8.0",
-    date: "2026-08-05",
+    date: "2026-08-07",
     href: "tree/v0.8.0",
     title: "Schema drift, observation contract, sampling signal",
     items: [
@@ -276,7 +421,7 @@ const VERSIONS = [
         {code("{ fingerprinting: false }")} anyway.{" "}
         <strong>Resolved in v0.6.0</strong>: {code("fingerprinting?: boolean")}{" "}
         landed on {code("InstrumentOptions")}. A narrower, related gap is{" "}
-        <strong>still not resolved as of v0.8.0</strong>:{" "}
+        <strong>still not resolved as of v0.10.0</strong>:{" "}
         {code("computeFingerprint()")}&apos;s {code("classifiers")}/{code("stackFrames")}{" "}
         options remain unwired through {code("instrumentMcpServer()")}&apos;s
         own options — no target version has been set for that part. See{" "}
@@ -323,6 +468,27 @@ const VERSIONS = [
     ],
   },
   {
+    version: "0.1.1",
+    date: "2026-07-12",
+    href: "compare/v0.1.0...v0.2.0",
+    title: "Patch release",
+    items: [
+      <>
+        Fix: {code("serviceName")} became optional — required (a
+        non-empty string) only when {code("setupNodeSdk: true")}, throwing
+        if missing in that mode; no effect otherwise, with a
+        once-per-process {code("diag.warn")} if passed anyway.
+      </>,
+      <>
+        Build: removed the published {code("workspaces")} array from{" "}
+        {code("package.json")}; added {code("prepack")}/{code("postpack")}{" "}
+        hooks ({code("strip-workspaces.js")}/{code("restore-workspaces.js")})
+        to strip it before publish and restore it after.
+      </>,
+      "Docs: README gained an ESM requirement note (\"type\": \"module\" or .mjs), an npm version badge, an Install section, and a 0.x semantic-conventions stability note.",
+    ],
+  },
+  {
     version: "0.2.0",
     date: "2026-07-13",
     href: "tree/v0.2.0",
@@ -337,12 +503,7 @@ const VERSIONS = [
         span name changed to {code("{mcp.method.name} {tool}")}, kind{" "}
         {code("SERVER")}.
       </>,
-      <>
-        Fix: {code("serviceName")} is no longer required when{" "}
-        {code("setupNodeSdk")} is {code("false")}.
-      </>,
-      "Build: workspace entries stripped from the published package.json manifest.",
-      "Docs: ESM-only requirement noted in the install section; ADR 004 documents the semantic-conventions alignment.",
+      "Docs: ADR 004 documents the semantic-conventions alignment.",
     ],
   },
   {
@@ -411,8 +572,9 @@ export default function ChangelogPage() {
           <p className="mt-4 text-muted-foreground">
             Version history for {PACKAGE.name}, current version v
             {PACKAGE.version}, sourced from the project&apos;s real commit
-            history and {code("CHANGELOG.md")} — not reconstructed from
-            memory.
+            history, README, ADRs, and known-gaps tracker — cross-checked
+            against {code("CHANGELOG.md")} where it agreed, not
+            reconstructed from memory.
           </p>
 
           <div className="mt-10 flex flex-col gap-12">

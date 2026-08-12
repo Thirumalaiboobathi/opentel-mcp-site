@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { PACKAGE, SITE } from "@/lib/constants";
 
-const INSTALL_COMMAND = `pnpm add ${PACKAGE.name}`;
+const INSTALL_COMMAND = `pnpm add ${PACKAGE.name} @opentelemetry/api`;
 
 export function Hero() {
   return (
@@ -16,7 +16,7 @@ export function Hero() {
       <div className="mx-auto grid max-w-[1200px] grid-cols-1 items-center gap-12 px-4 py-20 sm:px-6 lg:grid-cols-2 lg:gap-16 lg:py-28 xl:px-8">
         <div>
           <Badge variant="outline" className="border-brand/40 text-brand">
-            v{PACKAGE.version} — Tool Schema Drift Detection shipped
+            v{PACKAGE.version} — MCP v2 support shipped
           </Badge>
 
           <h1 className="mt-6 text-[clamp(2rem,5vw,4rem)] leading-[1.05] font-semibold tracking-tight text-foreground">
@@ -33,9 +33,10 @@ export function Hero() {
           </p>
 
           <p className="mt-3 max-w-xl text-sm text-muted-foreground">
-            v{PACKAGE.version} also flags when a tool&apos;s input schema
-            changes between observations, and detects when an agent is
-            thrashing on the same failure repeatedly.
+            v0.10.0 adds support for MCP v2 (@modelcontextprotocol/server)
+            alongside the original SDK — install whichever you use. v0.9.0
+            added instanceKey for sharing tracker state across stateless,
+            per-request deployments.
           </p>
 
           <div className="mt-8 flex max-w-md items-center justify-between gap-3 rounded-lg border border-border bg-surface px-4 py-3 font-mono text-sm">

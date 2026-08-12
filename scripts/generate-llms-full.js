@@ -179,6 +179,8 @@ function main() {
     ["silent-failures", "content/docs/silent-failures.mdx"],
     ["getting-started", "content/docs/getting-started.mdx"],
     ["deep-fingerprinting", "content/docs/deep-fingerprinting.mdx"],
+    ["cost-tracking", "content/docs/cost-tracking.mdx"],
+    ["instance-state", "content/docs/instance-state.mdx"],
     ["metrics", "content/docs/metrics.mdx"],
     ["api-reference", "content/docs/api-reference.mdx"],
     ["migration", "content/docs/migration.mdx"],

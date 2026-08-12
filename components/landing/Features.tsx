@@ -1,10 +1,12 @@
 import {
+  Boxes,
   Diff,
   DollarSign,
   Eye,
   Fingerprint,
   Gauge,
   Repeat,
+  Share2,
   ShieldOff,
   Sparkles,
   SquareStack,
@@ -66,6 +68,18 @@ const FEATURES = [
     title: "Two-Axis Observation Contract",
     description:
       "getObservationState() returns toolOutcome (success/failure/unknown counts) and observationIntegrity ('DEGRADED' | 'UNKNOWN') — whether this library's own signal can be trusted right now, separate from whether any tool call failed. Closes the case where instrumentation silently no-ops with no TracerProvider ever registered, making a failing tool indistinguishable from a healthy one. v0.8.0.",
+  },
+  {
+    icon: Share2,
+    title: "Shared Tracker State (instanceKey)",
+    description:
+      "Repeated instrumentMcpServer() calls that pass the same instanceKey share Agent Thrash Detection, budget tracking, schema drift, and the toolOutcome counter's state instead of each call resetting to empty — fixes stateless, per-request deployment shapes. v0.9.0.",
+  },
+  {
+    icon: Boxes,
+    title: "MCP v2 Support",
+    description:
+      "Both @modelcontextprotocol/sdk (v1) and @modelcontextprotocol/server (v2, protocol revision 2026-07-28) work with instrumentMcpServer() — two optional peer dependencies, install whichever you use. Spans, fingerprinting, and channel classification all work the same as v1. v0.10.0.",
   },
 ] as const;
 

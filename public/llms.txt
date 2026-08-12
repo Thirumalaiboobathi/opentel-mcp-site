@@ -24,6 +24,10 @@
   Automatic LLM cost and token attribution on MCP tool calls.
   Recognizes Anthropic, OpenAI, Bedrock, Google, DeepSeek usage
   shapes. Budget guardrails as observability flags.
+- [Tracker State Under Stateless HTTP](https://opentel-mcp-site.pages.dev/docs/instance-state):
+  Why opentel-mcp's four in-memory trackers reset on stateless
+  Streamable HTTP, and what instanceKey (v0.9.0) does — and
+  doesn't — fix.
 
 ## Reference
 
@@ -51,7 +55,7 @@
 - [Comparison](https://opentel-mcp-site.pages.dev/comparison): opentel-mcp vs
   raw @opentelemetry/api vs fastmcp built-in instrumentation.
 - [Changelog](https://opentel-mcp-site.pages.dev/changelog): v0.1.0 through
-  v0.5.0 with commit-linked history.
+  v0.10.0 with commit-linked history.
 - [About](https://opentel-mcp-site.pages.dev/about): The author and the origin
   of the project.
 - [Blog](https://opentel-mcp-site.pages.dev/blog): Deep dive on Deep Failure

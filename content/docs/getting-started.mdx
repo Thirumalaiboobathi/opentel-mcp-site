@@ -5,7 +5,7 @@ description: "OpenTelemetry MCP server instrumentation in one function call: ins
 section: "Introduction"
 order: 0
 datePublished: "2026-07-26"
-dateModified: "2026-07-31"
+dateModified: "2026-08-12"
 author: "Thirumalaiboobathi B"
 ---
 
@@ -29,11 +29,14 @@ verbatim so what's here is exactly what's tested and shipped.
 
 ## What do I need before I start?
 
-An MCP server built on `@modelcontextprotocol/sdk` — either the
-high-level `McpServer` or the low-level `Server` class. The quickstart
-below uses `McpServer`, `StdioServerTransport`, and `zod` (for the
-example tool's input schema); install whichever of those your project
-doesn't already have alongside opentel-mcp itself:
+An MCP server built on either supported SDK — `@modelcontextprotocol/sdk`
+(v1) or `@modelcontextprotocol/server` (v2, protocol revision 2026-07-28,
+v0.10.0+) — using either SDK's high-level `McpServer` or low-level
+`Server` class. Both SDKs are OPTIONAL peer dependencies of opentel-mcp;
+install whichever one your project actually uses. The quickstart below
+uses v1's `McpServer`, `StdioServerTransport`, and `zod` (for the example
+tool's input schema); install whichever of those your project doesn't
+already have alongside opentel-mcp itself:
 
 ```bash
 npm install opentel-mcp @opentelemetry/api
@@ -49,7 +52,10 @@ tools — before any `.tool()`/`.registerTool()` call on `McpServer`, or
 before `server.setRequestHandler(CallToolRequestSchema, ...)` on a
 low-level `Server`. Registering a tool first means that handler was
 never wrapped; see [API Reference](/docs/api-reference) for the full
-`InstrumentOptions` reference.
+`InstrumentOptions` reference. Shown below using v1's
+`@modelcontextprotocol/sdk` import paths — `@modelcontextprotocol/server`
+(v2)'s equivalents work the same way; see [API Reference](/docs/api-reference)'s
+"Does opentel-mcp support MCP v2?" section for what differs.
 
 ```js
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
@@ -74,6 +80,16 @@ server.tool('echo', { text: z.string() }, async ({ text }) => ({
 const transport = new StdioServerTransport();
 await server.connect(transport);
 ```
+
+<Callout variant="tip" title="Using @modelcontextprotocol/server (v2) instead?">
+  The same `instrumentMcpServer()` call works — but v2's
+  `createMcpHandler`/`serveStdio` construct a fresh server per request via
+  a factory function, so `instrumentMcpServer()` must run *inside* that
+  factory on every invocation, not once at module load like the snippet
+  above. See [API Reference](/docs/api-reference)'s "Does opentel-mcp
+  support MCP v2?" section for the factory pattern and why `instanceKey`
+  matters there.
+</Callout>
 
 That's the whole integration. `setupNodeSdk: true` is a dev-mode
 convenience — it creates and registers a `NodeTracerProvider` for you

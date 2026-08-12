@@ -1,0 +1,202 @@
+---
+slug: "instance-state"
+title: "Tracker State Under Stateless HTTP"
+description: "Why opentel-mcp's four in-memory trackers reset on stateless Streamable HTTP, and what instanceKey (v0.9.0) does — and doesn't — fix."
+section: "Concepts"
+order: 3
+datePublished: "2026-08-12"
+dateModified: "2026-08-12"
+author: "Thirumalaiboobathi B"
+---
+
+Under a "stateless" Streamable HTTP deployment — a fresh `Server`/`McpServer`
+constructed, and re-instrumented, on every incoming request — opentel-mcp's
+four in-memory trackers reset to empty before any of them ever sees a second
+data point. Agent Thrash Detection's consecutive-failure counts, Cost & Token
+Attribution's budget totals, Tool schema drift detection's per-tool schema
+history, and the Two-axis observation contract's `toolOutcome` counts all live
+inside the object `instrumentMcpServer()` constructs for one call — none of it
+survives past that call, and nothing shares state between two separate calls.
+Nothing ever crosses a threshold, and nothing warns that it isn't.
+`instanceKey`, shipped in v0.9.0, is opentel-mcp's fix: a host-supplied string
+that shares all four trackers across repeated `instrumentMcpServer()` calls
+that pass the same key, instead of discarding and rebuilding them every time.
+
+<Callout variant="tip" title="TL;DR">
+  `instanceKey` (an `instrumentMcpServer()` option, or `OTEL_MCP_INSTANCE_KEY`)
+  lets repeated `instrumentMcpServer()` calls for what is logically one
+  service share tracker state instead of resetting on every call. Omit it —
+  the default — for behavior byte-identical to every version before v0.9.0.
+  Two things it does **not** fix by itself: Agent Thrash Detection also needs
+  a real session id on every call, and the registry never crosses a process
+  boundary.
+</Callout>
+
+## Why do the trackers reset in the first place?
+
+The existing `kInstrumented` idempotency guard — which makes calling
+`instrumentMcpServer()` twice on the *same* object a no-op — doesn't help
+here: a stateless-HTTP deployment hands `instrumentMcpServer()` a genuinely
+different, freshly-constructed `Server` on every request, so the guard always
+sees a new object and full setup runs again in full, every time.
+
+This is invisible, and correct, for the deployment shape all four trackers
+were originally designed against: one `Server`/`McpServer` instance,
+instrumented once, kept alive for the life of the process — stdio's single
+persistent connection, or an HTTP server that keeps one instrumented instance
+around across many sessions. It becomes a real problem under stateless
+Streamable HTTP specifically, where the process itself stays alive but a new
+`Server` (and a fresh `instrumentMcpServer()` call) is constructed for every
+POST.
+
+Confirmed directly, not assumed: `test/integration/thrash-stateless-http-lifecycle.test.js`
+drives 5 identical-fingerprint tool failures across 5 separate
+`instrumentMcpServer()` calls, each on its own fresh `Server`. With the
+default `threshold: 3`, a correctly accumulating detector would fire
+`mcp.tool.loop.detected` by the 3rd call — without `instanceKey`, it never
+fires at all, even by the 5th.
+
+## What does instanceKey do?
+
+```js
+instrumentMcpServer(server, { instanceKey: 'my-mcp-server' });
+```
+
+Pick one stable string per logical service, and pass the same one on every
+`instrumentMcpServer()` call for that service's repeated, ephemeral `Server`
+instances. Internally, opentel-mcp looks each of the four trackers up in a
+bounded, TTL-evicting internal registry keyed by that string instead of
+constructing them unconditionally as fresh local variables — the registry and
+everything in it stay fully internal, exactly as before; nothing about the
+four tracker classes becomes public API.
+
+Set it when `instrumentMcpServer()` runs more than once per process for what
+is logically **one** service — "stateless" Streamable HTTP, a fresh
+`McpServer` per POST with the process itself kept alive, is the common real
+example.
+
+## Why doesn't instanceKey alone fix Agent Thrash Detection?
+
+<Callout variant="critical" title="instanceKey shares the tracker object. Agent Thrash Detection also needs a stable identity to key episodes by.">
+  Through v0.9.0, that meant thrash detection stayed silently inert even
+  with `instanceKey` set, for any deployment relying on the generated
+  fallback session id — the fallback itself was regenerated fresh on every
+  call, regardless of `instanceKey`. **As of v0.10.0, the fallback id is
+  registry-backed too**, closing that specific gap — a narrower limitation
+  survives it, described below.
+</Callout>
+
+`ThrashDetector` — the tracker `instanceKey` shares — looks up episodes by
+`(sessionId, toolName, fingerprint)`, not by fingerprint alone. When no real,
+transport-provided `extra.sessionId` is available, `instrumentMcpServer()`
+falls back to a generated per-connection session id instead — but only once
+it's confirmed safe to treat the call as single-connection: either
+`assumeSingleSession: true` is set explicitly, or the transport is positively
+recognized as single-connection (stdio, always; for a custom `Transport`,
+the absence of a `sessionId` property, unchanged since v0.9.0).
+
+Through v0.9.0, that fallback id was generated fresh on every single
+`instrumentMcpServer()` call, **regardless of `instanceKey`** — so even with
+the tracker shared, five stateless-HTTP requests landing on the fallback path
+still each got recorded under a different, unrelated id, and nothing ever
+accumulated past one. **As of v0.10.0, that's fixed:**
+`thrashConnectionFallbackSessionId` is now registry-backed via the same
+mechanism the four trackers already use (one more namespaced entry on the
+same registry) — repeated calls sharing one `instanceKey` now reuse the same
+generated fallback id, so the fallback path accumulates correctly across
+calls, the same way a real session id always could.
+
+**The limitation that survives this fix isn't `instanceKey` failing to share
+state — it's that there's no session identity signal to share in the first
+place.** MCP v2's default `createMcpHandler` deployment shape provides no
+real session id at all (the wire-level session handshake was removed in
+protocol revision 2026-07-28), and — correctly, as of v0.10.0 — its
+transport is no longer auto-classified as single-connection either (that
+auto-detection was itself a confirmed false positive; see
+`docs/known-gaps.md` entry 8). So the fallback path isn't reached at all
+under v2's default posture, and thrash detection stays inert there — not
+silently and incorrectly this time, but because there's genuinely no
+identity signal available to key episodes by, unless you know the
+deployment really is one logical connection and opt in yourself with
+`assumeSingleSession: true`.
+
+This composition requirement is specific to Agent Thrash Detection's
+per-session lookup key. Schema drift detection and the `toolOutcome` counter
+have no session-id dependency at all — `instanceKey` alone is sufficient for
+both.
+
+## Does instanceKey work across multiple processes (Lambda, Cloud Run)?
+
+<Callout variant="critical" title="No — and this is a structural limitation, not a tuning problem.">
+  Counters remain instance-local and best-effort by design. `instanceKey`'s
+  registry is one process's in-memory state.
+</Callout>
+
+On Lambda, Cloud Run, or any horizontally-scaled container fleet, concurrent
+requests are routed across concurrently-running instances, and instances
+themselves get recycled — passing the identical `instanceKey` string
+everywhere does not change this: each process loads its own copy of the
+registry and only ever sees the calls actually routed to it. A retry loop of
+N requests landing on N different instances still resets to empty on every
+one of them — the same silent inertness `instanceKey` exists to fix, reached
+through a different door.
+
+`instanceKey` is an optimization that widens what "instance-local" means, in
+practice, from "one `instrumentMcpServer()` call" to "one process, across as
+many ephemeral `Server` objects as share a key." It is not, and will not
+become, a distributed-counting mechanism — this library deliberately does not
+add an external store (Redis, DynamoDB, or similar) to close this gap,
+consistent with its dependency-free posture everywhere else.
+
+## What are the registry's bounds?
+
+The internal registry is bounded, not unbounded:
+
+- **Cap:** 1,000 distinct `instanceKey` values per process. Normal usage —
+  one stable key per logical service, reused across arbitrarily many calls —
+  should never approach this.
+- **TTL:** 24 hours, renewed on every use. Every `instrumentMcpServer()` call
+  under a given key resets that key's clock, so a busy service's entry never
+  expires from age alone as long as it keeps being used.
+
+Eviction mid-use silently resets that key's accumulated state: cap pressure,
+or a key genuinely going quiet for the full 24-hour TTL, both mean the next
+call under that key finds nothing and builds fresh trackers — the original
+bug's own behavior, just now gated behind a much narrower condition than "the
+next request arrived." Nothing warns when this happens.
+
+## How do I configure it?
+
+`instanceKey?: string` on `instrumentMcpServer()`'s options. Also settable via
+the `OTEL_MCP_INSTANCE_KEY` environment variable — lower precedence than the
+option itself, so an explicit `instanceKey` passed in code always wins. An
+empty or whitespace-only value from either source is treated the same as
+omitting it entirely.
+
+Omitting `instanceKey` — the default — produces behavior byte-identical to
+every version before v0.9.0: trackers are constructed fresh on every call,
+and the internal registry is never looked up or written to. This is a real
+branch, not a lookup that happens to always miss on the first call — no
+registry overhead for anyone who doesn't opt in.
+
+<Callout variant="tip" title="MCP v2 note">
+  As of v0.10.0, `@modelcontextprotocol/server` (MCP v2)'s `createMcpHandler`/`serveStdio`
+  construct a fresh `Server`/`McpServer` per request by default via a factory
+  function — the same deployment shape this page describes, now the SDK's own
+  default rather than an edge case. `instanceKey` is the same mechanism for
+  it; nothing new was added. v2's `ctx.sessionId` is a real, optional field,
+  but its default stateless posture usually doesn't populate it either — the
+  identical session-id composition requirement above applies. Full v2
+  coverage — dual-SDK support, the factory-pattern requirement, and current
+  status of the two tracked gaps under it — is in [API Reference](/docs/api-reference)'s
+  "Does opentel-mcp support MCP v2?" section.
+</Callout>
+
+## Where do I go from here?
+
+- [MCP Error Fingerprinting](/docs/deep-fingerprinting) — the fingerprint half
+  of Agent Thrash Detection's `(sessionId, toolName, fingerprint)` lookup key.
+- [Cost & Token Attribution](/docs/cost-tracking) — budget tracking is one of
+  the four trackers `instanceKey` shares.
+- [API Reference](/docs/api-reference) — full `instanceKey` option signature
+  alongside the rest of `InstrumentOptions`.

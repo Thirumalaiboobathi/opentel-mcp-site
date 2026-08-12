@@ -1,11 +1,11 @@
 ---
 slug: "api-reference"
 title: "API Reference"
-description: "Exported functions, types, and options in opentel-mcp v0.5.0: instrumentMcpServer, computeFingerprint, calculateCost, and their real signatures."
+description: "Exported functions, types, and options in opentel-mcp v0.10.0: instrumentMcpServer, computeFingerprint, calculateCost, and their real signatures."
 section: "Reference"
 order: 1
 datePublished: "2026-07-26"
-dateModified: "2026-07-29"
+dateModified: "2026-08-12"
 author: "Thirumalaiboobathi B"
 ---
 
@@ -38,15 +38,68 @@ function instrumentMcpServer<T extends Server | McpServer | DuckTypedMcpServer>(
 ): T & { shutdown?: () => Promise<void> };
 ```
 
-`server` is either a low-level `Server` (from
-`@modelcontextprotocol/sdk/server/index.js`) or a high-level `McpServer`
-(from `@modelcontextprotocol/sdk/server/mcp.js`). It must be called
-**before** any `tools/call` handler is registered — before
-`server.setRequestHandler(CallToolRequestSchema, ...)` on a low-level
-`Server`, or before any `.tool()`/`.registerTool()` call on an
-`McpServer`. Calling it more than once on the same server (or on an
-`McpServer` and its inner `Server` interchangeably) is a no-op after the
-first call.
+`server` is either a low-level `Server` or a high-level `McpServer`, from
+either of two supported SDKs: `@modelcontextprotocol/sdk` (v1 — `Server`
+from `.../server/index.js`, `McpServer` from `.../server/mcp.js`) or
+`@modelcontextprotocol/server` (v2, protocol revision 2026-07-28,
+v0.10.0+ — same class names, same import-path shape). Both are OPTIONAL
+peer dependencies of opentel-mcp — install whichever one(s) you actually
+use; see "Does opentel-mcp support MCP v2?" below for what differs
+between them. It must be called **before** any `tools/call` handler is
+registered — before `server.setRequestHandler(CallToolRequestSchema,
+...)` (v1 low-level) or `server.setRequestHandler('tools/call', ...)`
+(v2 low-level — v2 dispatches by a plain method-name string rather than
+schema-object identity), or before any `.tool()`/`.registerTool()` call
+on an `McpServer` from either SDK. Calling it more than once on the same
+server (or on an `McpServer` and its inner `Server` interchangeably) is a
+no-op after the first call.
+
+**As of v0.10.0, an `McpServer`-shaped object isn't just duck-typed — its
+inner server is verified too.** `instrumentMcpServer()` recognizes a
+high-level `McpServer` by two checks together: an outer shape match
+(`.server.setRequestHandler` is a function, and either `.tool` or
+`.registerTool` is a function) **and**, new in v0.10.0, that `.server`
+actually is a recognized `Server` instance from a supported SDK — not
+merely an object that happens to expose a `setRequestHandler` method,
+which is all earlier versions checked.
+
+<Callout variant="critical" title="Unrecognized McpServer-shaped objects now throw, not silently no-op">
+  **Scope:** this only covers an object that passes the outer `McpServer`
+  shape check above but whose `.server` doesn't resolve to a recognized
+  `Server` class. An input that doesn't look like a `Server` or
+  `McpServer` at all fails a different, earlier check and throws a
+  separate error — this callout is about the narrower, shape-matched case
+  specifically.
+
+  Before v0.10.0, an object satisfying just the outer shape check passed
+  detection and appeared to instrument successfully —
+  `instrumentMcpServer()` returned without error,
+  `getThrashSummary`/`getObservationState` were both attached — while
+  producing zero spans, zero metrics, and zero fingerprinting for every
+  tool call, silently. **As of v0.10.0, that object throws instead** — a
+  plain `Error`, not a named or exported error class, so it can't be
+  caught by type or a `.code` property. Its `.message` begins:
+
+  `` "opentel-mcp: instrumentMcpServer() detected an object shaped like a high-level McpServer (it has .tool()/.registerTool() and a .server.setRequestHandler() method), but its `.server` property is not a recognized Server instance from either supported MCP SDK" ``
+
+  No escape hatch was added — an override letting a caller bypass the
+  check would defeat the reason this exists.
+
+  **The message names three possible causes — check them in this order:**
+
+  1. A duplicate or mismatched install of whichever SDK
+     (`@modelcontextprotocol/sdk` or `@modelcontextprotocol/server`) your
+     server actually came from — try `npm dedupe`, or check for multiple
+     installed versions.
+  2. That SDK **is** installed, but isn't resolvable from opentel-mcp's
+     own location — a monorepo or hoisting issue. Fix is confirming
+     normal `node_modules` resolution from wherever opentel-mcp itself is
+     installed, **not** `npm dedupe` — a different problem than (1).
+  3. An MCP SDK this package doesn't support at all.
+
+  A real `Server`/`McpServer` from a single, consistently-resolved copy of
+  either supported SDK is unaffected by this change.
+</Callout>
 
 Scope: as of v0.8.0, the `tools/call` handler (registered via
 `CallToolRequestSchema`) is always wrapped, and the `tools/list` handler
@@ -87,6 +140,7 @@ interface InstrumentOptions {
   fingerprinting?: boolean;                 // default: true — deep-failure fingerprinting
   thrashDetection?: Partial<ThrashConfig>;  // default: enabled — see README's "Agent Thrash Detection (v0.6.0+)" section for ThrashConfig's full fields
   schemaDrift?: Partial<SchemaDriftConfig>; // default: enabled — see README's "Tool schema drift detection (v0.8.0+)" section for SchemaDriftConfig's full fields
+  instanceKey?: string;                     // default: unset — shares Agent Thrash Detection, budget tracking, schema drift, and the toolOutcome counter's state across instrumentMcpServer() calls that share this key (v0.9.0+). See "Tracker State Under Stateless HTTP" (/docs/instance-state)
 }
 ```
 
@@ -109,7 +163,7 @@ interface InstrumentOptions {
   error passing `{ fingerprinting: false }` even though it was honored at
   runtime. **Resolved in v0.6.0**: `fingerprinting?: boolean` landed on
   `InstrumentOptions`. A narrower, related gap is **still not resolved as
-  of v0.8.0**: `computeFingerprint()`'s `classifiers`/`stackFrames`
+  of v0.10.0**: `computeFingerprint()`'s `classifiers`/`stackFrames`
   options remain unwired through `instrumentMcpServer()`'s own options —
   no target version has been set for that part.
 </Callout>
@@ -123,6 +177,25 @@ flushes and shuts down the `NodeTracerProvider` opentel-mcp created, and
 should run during your process's own shutdown sequence so buffered spans
 aren't lost.
 
+### `DuckTypedServer`
+
+```ts
+type DuckTypedServer = {
+  setRequestHandler: (...args: any[]) => any;
+};
+```
+
+The low-level counterpart to `DuckTypedMcpServer` below — a purely
+structural type describing a low-level `Server`'s shape without
+importing either SDK's actual `Server` class. Added in v0.10.0 alongside
+`@modelcontextprotocol/server` becoming a second, optional peer
+dependency: once *both* SDKs are optional, a nominal `import type {
+Server } from '@modelcontextprotocol/sdk/...'` in `index.d.ts` breaks
+type-checking for any consumer who has neither SDK installed — confirmed
+against a real packed tarball with neither SDK present, not predicted
+from `package.json` syntax alone. Same reasoning as `DuckTypedMcpServer`'s
+own history below, which hit the identical problem first.
+
 ### `DuckTypedMcpServer`
 
 ```ts
@@ -133,15 +206,88 @@ type DuckTypedMcpServer = {
 };
 ```
 
-A structural fallback type for `McpServer`-shaped objects that aren't
-literally `instanceof McpServer` — the package's own doc comment
-explains why: `McpServer` has private fields, so TypeScript treats
-assignability to it as effectively nominal, and an `McpServer` instance
-from a *different* resolved copy of `@modelcontextprotocol/sdk` (a
-hoisting mismatch in a monorepo, for example) would otherwise fail the
-type check even though `instrumentMcpServer()` handles it fine at
-runtime — it never uses `instanceof McpServer` internally, only this
-same duck-typing check.
+A structural type for `McpServer`-shaped objects that aren't literally
+`instanceof McpServer` — the package's own doc comment explains why:
+`McpServer` has private fields, so TypeScript treats assignability to it
+as effectively nominal, and neither SDK's real `McpServer` class is
+imported here at all — nominally importing either would break
+type-checking for a consumer who has only the other SDK, or neither,
+installed.
+
+<Callout variant="warning" title="Satisfying this type is necessary, but not sufficient, for runtime acceptance">
+  Before v0.10.0, an object satisfying this shape reliably worked at
+  runtime too — detection there was equally loose. **That stopped being
+  true once `detectServerKind()` was hardened** to additionally require
+  `.server instanceof <Server>` for a real, resolved SDK class (see
+  "Unrecognized McpServer-shaped objects now throw, not silently no-op"
+  above). As a direct, deliberate consequence, an object that merely has
+  the right shape — a dual-package-hazard `.server` from a *different*
+  resolved copy of the SDK than this process itself resolves, or a
+  hand-rolled mock not actually built on either SDK — is now **rejected**
+  at runtime (`UNWRAPPABLE_MCPSERVER_ERROR`), not silently accepted. This
+  type mirrors the duck-typing the runtime's detection step performs; it
+  can't also encode the nominal `instanceof` check runtime acceptance
+  ultimately requires, since that would mean importing a class this file
+  cannot safely import for either SDK.
+</Callout>
+
+## Does opentel-mcp support MCP v2?
+
+Yes, as of v0.10.0. Both `@modelcontextprotocol/sdk` (v1, protocol
+revisions through 2025-11-25) and `@modelcontextprotocol/server` (v2,
+protocol revision 2026-07-28) are supported — two separate, OPTIONAL peer
+dependencies. Install whichever one(s) you actually use; neither is
+required just to depend on opentel-mcp. Detection and wrapping happen
+automatically, resolved once per `instrumentMcpServer()` call by which SDK
+the object actually came from — there's no separate `instrumentMcpServerV2()`
+export.
+
+**What works identically to v1:** spans, standard attributes, [Deep
+Failure Fingerprinting](/docs/deep-fingerprinting), and
+`mcp.failure.channel`/`mcp.failure.validation_paths` classification — v2
+gained its own code path for each, since v2's thrown errors carry a clean
+message with no `"MCP error N: "` wrapper to unwrap, and its rendered
+validation-issue text uses a third, distinct format from either of v1's
+two. One attribute source differs: `jsonrpc.request.id` reads from v1's
+`extra.requestId`, but from v2's `ctx.mcpReq.id` — a field that's always
+present on v2 rather than conditionally set, unlike v1's.
+
+<Callout variant="critical" title="v2's own entry points construct a fresh server per request — instrumentMcpServer() must run inside that factory">
+  v2's `createMcpHandler`/`serveStdio` build a new `Server`/`McpServer`
+  instance **per request**, via a factory function you provide — including
+  `createMcpHandler`'s default stateless posture, not an edge case.
+  `instrumentMcpServer()` has to run *inside* that factory, on every
+  invocation, not once at module load the way a long-lived v1 server does.
+  This isn't a new mechanism: it's the identical deployment shape
+  [Tracker State Under Stateless HTTP](/docs/instance-state) already
+  covers for v1's "stateless Streamable HTTP" case — `instanceKey` (v0.9.0)
+  is the existing fix, shared unchanged. Nothing v2-specific was added for
+  it.
+</Callout>
+
+**Status of the two tracked gaps under v2** (`docs/known-gaps.md` entries 6
+and 8) as of v0.10.0: entry 8 is fixed; entry 6 is partially fixed, not
+closed — its fallback-id half is fixed, but a structural limitation
+survives it (below). `isSingleConnectionTransport()` no longer auto-detects the transport
+`createMcpHandler` builds internally as single-connection (entry 8,
+fixed) — so Agent Thrash Detection's session-id fallback path is no
+longer reached automatically by a typical v2 HTTP deployment; it now
+requires an explicit, informed `assumeSingleSession: true` opt-in, or a
+genuinely single-connection v2 `serveStdio` deployment. For whichever
+deployments do legitimately reach that fallback path, the generated
+fallback session id is now shared across repeated `instrumentMcpServer()`
+calls when `instanceKey` is set (entry 6's fallback-id half, fixed) — the
+same registry [Tracker State Under Stateless HTTP](/docs/instance-state)
+already describes, one more namespaced entry, no new bound/eviction
+policy. One narrower thing stays open: the internal flag tracking
+"has this server ever proven itself session-aware" isn't registry-backed
+yet, which only matters for a deployment mixing real-session-id calls
+with occasional no-session-id ones under one shared `instanceKey`.
+Separately, and not fixable by this or any library-side change: MCP spec
+2026-07-28 removes the wire-level session handshake entirely, so
+`createMcpHandler`'s stateless default simply doesn't populate a real
+session id most of the time — `instanceKey` was never designed to
+manufacture one, only to share tracker state given one.
 
 ## What's exported for Deep Failure Fingerprinting?
 

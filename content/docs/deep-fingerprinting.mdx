@@ -5,7 +5,7 @@ description: "MCP error fingerprinting: opentel-mcp groups identical CallToolRes
 section: "Concepts"
 order: 1
 datePublished: "2026-07-26"
-dateModified: "2026-07-31"
+dateModified: "2026-08-12"
 author: "Thirumalaiboobathi B"
 ---
 
@@ -79,10 +79,37 @@ it has to run last:
 1. `validation` — bad input (Zod/Joi/Yup-shaped errors, "invalid"/"required" wording)
 2. `timeout` — an operation timed out (`TimeoutError`, `ETIMEDOUT`, ...)
 3. `network` — a connection failed (`ECONNREFUSED`, `FetchError`, ...)
-4. `auth` — 401/403, "unauthorized"/"forbidden" wording
+4. `auth` — 401/403, "unauthorized"/"forbidden" wording, plus (v0.9.0+)
+   "permission denied", "access denied", "not authorized", "insufficient
+   permission(s)", and `EACCES`/`EPERM`
 5. `dependency` — a downstream service or package failed (a database driver, an SDK, ...)
 6. `serialization` — malformed JSON, "unexpected token" wording
 7. `internal` — nothing more specific matched; the catch-all
+
+<Callout variant="critical" title="Fingerprint values changed on v0.9.0 upgrade for auth-classified messages">
+  The `auth` classifier missed "permission denied" and "access denied" —
+  the standard OS/CLI/IAM phrasing for a permission failure — before
+  v0.9.0; it only recognized HTTP-status-derived wording (`unauthorized`,
+  `forbidden`, `authenticat(e|ion)`), 401/403 status codes, and a handful
+  of known auth-library error names. Messages using that OS/CLI phrasing
+  fell through every classifier and landed in `internal` instead. **As of
+  v0.9.0**, it also matches "not authorized", "permission(s) denied",
+  "access denied", "insufficient permission(s)", and Node's own
+  `EACCES`/`EPERM` error codes — still not bare "authorized" or
+  "permission" alone, to avoid false positives like "user denied the
+  permission request".
+
+  **Because `category` is one of the hashed inputs `computeFingerprint()`
+  combines into `mcp.failure.fingerprint`, this changes the fingerprint
+  for affected messages.** A permission-denied failure that previously
+  classified as `internal` now classifies as `auth` — the fields feeding
+  the hash change, so the fingerprint itself changes. If you alert or
+  dashboard on a specific `mcp.failure.fingerprint` value for a
+  permission error, expect a new value after upgrading to v0.9.0. This
+  does **not** amend the closed 8-category taxonomy below — `auth`
+  already existed; this is pattern coverage for when it fires, not a new
+  category.
+</Callout>
 
 An 8th value, `unknown`, isn't one of the seven classifiers — it's what
 `computeFingerprint()` itself falls back to if the whole pipeline hits an
@@ -185,7 +212,7 @@ refusal on an error. Full type signatures are on the
 currently wired through `instrumentMcpServer()`'s own options — using
 them today means calling `computeFingerprint()` directly rather than
 configuring it through `instrumentMcpServer()`. **Still not wired
-through as of v0.8.0** — `instrumentMcpServer()` gained `costTracking`
+through as of v0.10.0** — `instrumentMcpServer()` gained `costTracking`
 (v0.5.0), `thrashDetection` (v0.6.0), and `schemaDrift` (v0.8.0) options
 in the releases since, but not this one. No target version has been set
 for wiring `classifiers`/`stackFrames` through
