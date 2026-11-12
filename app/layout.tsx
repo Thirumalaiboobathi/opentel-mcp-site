@@ -31,7 +31,7 @@ const geistMono = localFont({
 export const metadata: Metadata = {
   metadataBase: new URL(SITE.url),
   ...buildMetadata({
-    title: `${SITE.name} — OpenTelemetry for MCP silent failures`,
+    title: `${SITE.name} — MCP silent failure & tool tampering detection`,
     description: SITE.description,
     path: "/",
     image: `${SITE.url}/opengraph-image`,

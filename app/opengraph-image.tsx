@@ -45,7 +45,7 @@ export default function OpengraphImage() {
               padding: "4px 14px",
             }}
           >
-            v{PACKAGE.version}
+            npm v{PACKAGE.version} · PyPI v{PACKAGE.pypiVersion} · {PACKAGE.downloads} downloads
           </div>
         </div>
 

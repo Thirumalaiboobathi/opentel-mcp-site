@@ -78,7 +78,7 @@ export default function ComparisonPage() {
           </h1>
           <p className="mt-4 text-muted-foreground">
             {PACKAGE.name} is a purpose-built OpenTelemetry instrumentation
-            layer for Model Context Protocol (MCP) servers on Node.js. The
+            layer for Model Context Protocol (MCP) servers, for Node.js (npm) and Python (PyPI). The
             closest points of comparison are raw{" "}
             <code className="rounded-md bg-muted px-1.5 py-0.5 font-mono text-[0.9em] text-foreground">
               @opentelemetry/api
@@ -93,7 +93,7 @@ export default function ComparisonPage() {
             <code>CallToolResult</code> is — it can&apos;t see{" "}
             <code>isError: true</code> without you writing a check for it.
             fastmcp is a separate, Python-based project; it isn&apos;t a
-            same-ecosystem alternative to a Node.js package, and the only
+            same-ecosystem alternative to the npm package, and the only
             confirmed connection is a bug report, not a feature comparison.
             No dedicated MCP-focused tracing library under the name
             &quot;mcp-tracer&quot; was found on npm or GitHub — it isn&apos;t
@@ -131,9 +131,9 @@ export default function ComparisonPage() {
           <p className="mt-4 text-muted-foreground">
             fastmcp (<code className="rounded-md bg-muted px-1.5 py-0.5 font-mono text-[0.9em] text-foreground">PrefectHQ/fastmcp</code>)
             is a Python framework for building MCP servers. {PACKAGE.name} is
-            a Node.js package that instruments servers built on{" "}
+            an npm package (with a separate PyPI package for Python) that instruments servers built on{" "}
             <code className="rounded-md bg-muted px-1.5 py-0.5 font-mono text-[0.9em] text-foreground">@modelcontextprotocol/sdk</code>,
-            the JavaScript/TypeScript MCP SDK. It cannot instrument a Python
+            the JavaScript/TypeScript MCP SDK. The npm package cannot instrument a Python
             process — different language runtime entirely, so a
             feature-by-feature comparison table between the two isn&apos;t
             really meaningful, and this page won&apos;t fabricate one.

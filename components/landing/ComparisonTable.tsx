@@ -48,7 +48,7 @@ function CellIcon({ value }: { value: Cell }) {
 
 export function ComparisonTable() {
   return (
-    <section className="mx-auto max-w-[1200px] px-4 py-20 sm:px-6 xl:px-8">
+    <section className="w-full mx-auto max-w-[1200px] px-4 py-20 sm:px-6 xl:px-8">
       <div className="mx-auto max-w-2xl text-center">
         <h2 className="text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
           How {PACKAGE.name} compares

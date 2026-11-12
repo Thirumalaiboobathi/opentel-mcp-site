@@ -7,7 +7,9 @@ import { Features } from "@/components/landing/Features";
 import { Hero } from "@/components/landing/Hero";
 import { HowItWorks } from "@/components/landing/HowItWorks";
 import { InstallSection } from "@/components/landing/InstallSection";
-import { ProblemStatement } from "@/components/landing/ProblemStatement";
+import { SecuritySection } from "@/components/landing/SecuritySection";
+import { SilentFailureCompare } from "@/components/landing/SilentFailureCompare";
+import { WhatsNew } from "@/components/landing/WhatsNew";
 import { SocialProof } from "@/components/landing/SocialProof";
 import { TrustBar } from "@/components/landing/TrustBar";
 import { JsonLd } from "@/components/seo/JsonLd";
@@ -37,8 +39,8 @@ const homepageFaqItems = faq.items.filter((item) =>
 );
 
 export const metadata: Metadata = buildMetadata({
-  title: `${PACKAGE.name} — OpenTelemetry for MCP silent failures`,
-  description: `${PACKAGE.name} is a Node.js OpenTelemetry instrumentation library for Model Context Protocol servers. It detects CallToolResult.isError silent failures other libraries miss.`,
+  title: `${PACKAGE.name} — MCP silent failure & tool tampering detection`,
+  description: `OpenTelemetry for MCP servers in Node.js and Python. Detects silent failures (isError in a 200 OK), tool rug-pulls and secret leaks. Detects, never blocks.`,
   path: "/",
 });
 
@@ -77,10 +79,12 @@ export default function Home() {
         ]}
       />
       <Hero />
-      <DownloadsMilestone />
       <TrustBar />
-      <ProblemStatement />
+      <DownloadsMilestone />
+      <SilentFailureCompare />
+      <WhatsNew />
       <Features />
+      <SecuritySection />
       <HowItWorks />
       <ComparisonTable />
       <InstallSection />

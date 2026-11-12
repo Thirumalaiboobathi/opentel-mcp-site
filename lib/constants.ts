@@ -2,9 +2,9 @@ export const SITE = {
   name: "opentel-mcp",
   domain: "opentel-mcp-site.pages.dev",
   url: "https://opentel-mcp-site.pages.dev",
-  tagline: "OpenTelemetry for MCP servers that actually catches silent failures.",
+  tagline: "Catch MCP silent failures and tool tampering — in Node.js and Python.",
   description:
-    "opentel-mcp is a Node.js OpenTelemetry instrumentation library for Model Context Protocol servers. It uniquely detects silent failures — CallToolResult.isError=true inside successful JSON-RPC responses — and marks OpenTelemetry spans as ERROR.",
+    "opentel-mcp is OpenTelemetry instrumentation for Model Context Protocol servers in Node.js and Python. It detects silent failures (isError inside a 200 OK), tool definition tampering and secret leaks, and marks spans ERROR. It detects, never blocks.",
   // This marketing site's own repo (distinct from PACKAGE.github, which is
   // the npm package's repo), used for "Edit this page on GitHub" links.
   repoUrl: "https://github.com/Thirumalaiboobathi/opentel-mcp-site",
@@ -12,7 +12,12 @@ export const SITE = {
 
 export const PACKAGE = {
   name: "opentel-mcp",
-  version: "0.10.0",
+  version: "0.18.1",
+  uiVersion: "0.4.1",
+  pypiVersion: "0.2.0",
+  pypi: "https://pypi.org/project/opentel-mcp/",
+  npmUi: "https://www.npmjs.com/package/opentel-mcp-ui",
+  downloads: "15,000+",
   license: "MIT",
   runtime: "Node.js 20+",
   testCount: 748,

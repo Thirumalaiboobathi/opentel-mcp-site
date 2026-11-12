@@ -1,113 +1,180 @@
 import {
+  Activity,
   Boxes,
-  Diff,
+  Clock,
   DollarSign,
   Eye,
+  EyeOff,
   Fingerprint,
   Gauge,
+  Layers,
+  PackageCheck,
   Repeat,
   Share2,
   ShieldOff,
-  Sparkles,
-  SquareStack,
+  Diff,
+  Timer,
+  type LucideIcon,
 } from "lucide-react";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
-const FEATURES = [
+type Feature = { icon: LucideIcon; title: string; description: string };
+
+const THEMES: { id: string; title: string; blurb: string; features: Feature[] }[] = [
   {
-    icon: ShieldOff,
-    title: "Silent Failure Detection",
-    description:
-      "Detects CallToolResult.isError = true inside otherwise-successful JSON-RPC responses and marks the span ERROR — no other Node.js MCP library does this.",
+    id: "core",
+    title: "Core",
+    blurb: "What every server gets from one instrumentMcpServer() call.",
+    features: [
+      {
+        icon: ShieldOff,
+        title: "Silent-failure detection",
+        description: "isError inside a 200 OK marks the span ERROR.",
+      },
+      {
+        icon: Fingerprint,
+        title: "Error fingerprints",
+        description: "Stable hashes group identical failures; same in JS and Python.",
+      },
+      {
+        icon: Gauge,
+        title: "Health grades A–F",
+        description: "A single grade per tool, from real call outcomes.",
+      },
+      {
+        icon: Eye,
+        title: "Unactionable-error detection",
+        description: "Flags errors an agent can't act on or recover from.",
+      },
+      {
+        icon: Activity,
+        title: "flushOnExit",
+        description: "Short-lived processes flush telemetry before they exit.",
+      },
+      {
+        icon: Layers,
+        title: "Tools, resources, prompts",
+        description: "All three MCP call types are traced, not just tools.",
+      },
+      {
+        icon: Repeat,
+        title: "Agent thrash detection",
+        description: "Flags the same failure repeating within one session.",
+      },
+      {
+        icon: Diff,
+        title: "Schema drift detection",
+        description: "Flags tools whose inputSchema changes between observations.",
+      },
+      {
+        icon: DollarSign,
+        title: "Cost and token attribution",
+        description: "Token counts and USD estimates for LLM-wrapping tools.",
+      },
+      {
+        icon: Share2,
+        title: "Shared tracker state",
+        description: "instanceKey keeps state across stateless, per-request servers.",
+      },
+      {
+        icon: Boxes,
+        title: "MCP SDK v1 and v2",
+        description: "Works with @modelcontextprotocol/sdk and /server.",
+      },
+    ],
   },
   {
-    icon: Fingerprint,
-    title: "Deep Failure Fingerprinting",
-    description:
-      "SHA-256 hashes truncated to 16 hex characters group identical failures across traces, without leaking raw payloads into span attributes.",
+    id: "freshness",
+    title: "Data freshness",
+    blurb: "Know when a tool is answering with stale data.",
+    features: [
+      {
+        icon: Clock,
+        title: "Staleness detection",
+        description:
+          "asOf with maxAgeMs, or freshUntil, via the freshness _meta key.",
+      },
+      {
+        icon: Timer,
+        title: "Clock-skew visibility (JS)",
+        description: "Surfaces skew that would make freshness checks misleading.",
+      },
+    ],
   },
   {
-    icon: Gauge,
-    title: "Twelve Metrics Instruments",
-    description:
-      "Ships counters and histograms out of the box — call/error/duration counts, cost and token totals, five Agent Thrash Detection loop instruments, and schema drift detection — ready for Prometheus, SigNoz, or any OTel-compatible backend.",
+    id: "privacy",
+    title: "Privacy and hardening",
+    blurb: "Observability that doesn't become a data leak.",
+    features: [
+      {
+        icon: EyeOff,
+        title: "Never records arguments or results",
+        description: "Tool arguments and results stay out of telemetry.",
+      },
+      {
+        icon: ShieldOff,
+        title: "Credential scrubbing",
+        description: "Credentials are scrubbed before anything is emitted.",
+      },
+      {
+        icon: PackageCheck,
+        title: "Hardened dashboard",
+        description:
+          "CSRF protection, DNS-rebinding defense, CSP, and request size limits.",
+      },
+      {
+        icon: Eye,
+        title: "SECURITY.md and threat model",
+        description: "Documented reporting process and threat-model docs.",
+      },
+      {
+        icon: PackageCheck,
+        title: "Clean install (v0.18.1)",
+        description:
+          "No deprecation warnings, 0 known vulnerabilities, live resource and prompt spans in the dashboard.",
+      },
+    ],
   },
-  {
-    icon: DollarSign,
-    title: "Cost & Token Attribution",
-    description:
-      "LLM-wrapping tools get automatic token counts, model detection, and USD cost estimates. Anthropic, OpenAI, Bedrock, Google, DeepSeek supported by default. v0.5.0.",
-  },
-  {
-    icon: Sparkles,
-    title: "Never Throws",
-    description:
-      "Every instrumentation path is designed to fail safe. Fingerprinting falls back to a fixed value rather than raising an exception.",
-  },
-  {
-    icon: SquareStack,
-    title: "Cardinality-Safe Labels",
-    description:
-      "A frozen METRIC_SAFE_ATTRIBUTES array constrains metric attributes, preventing high-cardinality label explosions in your backend.",
-  },
-  {
-    icon: Repeat,
-    title: "Agent Thrash Detection",
-    description:
-      "Flags a tool failing with the same fingerprint repeatedly in one session — the pattern an agent produces retrying a call that can't succeed. Channel-aware thresholds set a different bar per failure origin, and wasted tokens and cost for the whole retry loop attribute to one event instead of scattering across N failed spans. v0.6.0, channel-aware thresholds in v0.7.0.",
-  },
-  {
-    icon: Diff,
-    title: "Tool Schema Drift Detection",
-    description:
-      "Watches tools/list and flags when a tool's inputSchema changes between observations, connecting otherwise-inexplicable agent failures back to the schema changing under you. v0.8.0.",
-  },
-  {
-    icon: Eye,
-    title: "Two-Axis Observation Contract",
-    description:
-      "getObservationState() returns toolOutcome (success/failure/unknown counts) and observationIntegrity ('DEGRADED' | 'UNKNOWN') — whether this library's own signal can be trusted right now, separate from whether any tool call failed. Closes the case where instrumentation silently no-ops with no TracerProvider ever registered, making a failing tool indistinguishable from a healthy one. v0.8.0.",
-  },
-  {
-    icon: Share2,
-    title: "Shared Tracker State (instanceKey)",
-    description:
-      "Repeated instrumentMcpServer() calls that pass the same instanceKey share Agent Thrash Detection, budget tracking, schema drift, and the toolOutcome counter's state instead of each call resetting to empty — fixes stateless, per-request deployment shapes. v0.9.0.",
-  },
-  {
-    icon: Boxes,
-    title: "MCP v2 Support",
-    description:
-      "Both @modelcontextprotocol/sdk (v1) and @modelcontextprotocol/server (v2, protocol revision 2026-07-28) work with instrumentMcpServer() — two optional peer dependencies, install whichever you use. Spans, fingerprinting, and channel classification all work the same as v1. v0.10.0.",
-  },
-] as const;
+];
 
 export function Features() {
   return (
-    <section className="mx-auto max-w-[1200px] px-4 py-20 sm:px-6 xl:px-8">
+    <section className="cv-auto mx-auto max-w-[1200px] px-4 py-16 sm:px-6 xl:px-8">
       <div className="mx-auto max-w-2xl text-center">
         <h2 className="text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
           Built specifically for MCP observability
         </h2>
+        <p className="mt-3 text-muted-foreground">
+          Always detects, never blocks.
+        </p>
       </div>
 
-      <div className="mt-12 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {FEATURES.map((feature) => (
-          <Card key={feature.title}>
-            <CardHeader>
-              <feature.icon
-                className="size-5 text-brand"
-                aria-hidden="true"
-              />
-              <CardTitle className="mt-3">{feature.title}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground">
-                {feature.description}
-              </p>
-            </CardContent>
-          </Card>
+      <div className="mt-12 space-y-14">
+        {THEMES.map((theme) => (
+          <div key={theme.id}>
+            <h3 className="text-lg font-semibold text-foreground">
+              {theme.title}
+            </h3>
+            <p className="mt-1 max-w-[70ch] text-sm text-muted-foreground">
+              {theme.blurb}
+            </p>
+            <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {theme.features.map((f) => (
+                <Card key={f.title}>
+                  <CardHeader>
+                    <f.icon className="size-5 text-brand" aria-hidden="true" />
+                    <CardTitle className="mt-3">{f.title}</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-sm text-muted-foreground">
+                      {f.description}
+                    </p>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </div>
         ))}
       </div>
     </section>

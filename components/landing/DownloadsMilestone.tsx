@@ -22,13 +22,13 @@ export function DownloadsMilestone() {
             aria-hidden="true"
           />
           <p className="mt-4 font-mono text-[clamp(2.75rem,9vw,6rem)] leading-none font-semibold tracking-tight text-brand">
-            1,000+
+            {PACKAGE.downloads}
           </p>
           <p className="mt-4 text-lg text-muted-foreground">
             Total npm downloads since launch.
           </p>
           <p className="mt-1 text-sm text-text-tertiary">
-            Currently on v{PACKAGE.version}.
+            npm v{PACKAGE.version} · PyPI v{PACKAGE.pypiVersion}.
           </p>
         </motion.div>
       </div>

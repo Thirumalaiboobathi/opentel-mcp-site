@@ -30,8 +30,8 @@ export default function DocsOverviewPage() {
           Documentation
         </h1>
         <p className="mt-4 text-muted-foreground">
-          {PACKAGE.name} is a {PACKAGE.runtime} OpenTelemetry
-          instrumentation library for Model Context Protocol (MCP)
+          {PACKAGE.name} is an OpenTelemetry
+          instrumentation library (npm, {PACKAGE.runtime}; and PyPI, Python 3.10–3.14) for Model Context Protocol (MCP)
           servers. These pages cover installing it, what{" "}
           <code className="rounded-md bg-muted px-1.5 py-0.5 font-mono text-[0.9em] text-foreground">
             CallToolResult.isError

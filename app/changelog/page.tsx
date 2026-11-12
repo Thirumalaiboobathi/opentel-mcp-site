@@ -16,7 +16,84 @@ const code = (text: string) => (
   </code>
 );
 
-const VERSIONS = [
+const VERSIONS: {
+  version: string;
+  date?: string;
+  href: string;
+  title: string;
+  items: React.ReactNode[];
+  note?: React.ReactNode;
+}[] = [
+  {
+    version: "0.18.1",
+    date: "2026-11-07",
+    href: "releases",
+    title: "Security observability, clean install (v0.11–v0.18.1 summary)",
+    items: [
+      <>
+        Added (v0.18): tool definition integrity with SHA-256 hashes and
+        pinning to detect rug-pulls; opt-in secret leak detection in tool
+        outputs (type and count only, never the value); an auth failure
+        counter; sensitive tool audit events with wildcard matching; and a
+        Security panel in the dashboard. It detects, never blocks.
+      </>,
+      <>
+        Changed (v0.18.1): clean install with no deprecation warnings, 0
+        known vulnerabilities, and live resource and prompt spans in the
+        dashboard.
+      </>,
+      <>
+        Python {PACKAGE.pypiVersion} (PyPI) ships the same security features
+        with the same hash as JS; error fingerprints match JS via shared
+        conformance fixtures. Requires mcp 1.25–2.x and Python 3.10–3.14.
+      </>,
+      <>
+        Per-release detail for v0.11.0–v0.17.x is not itemized on this page
+        yet; see the{" "}
+        <a
+          href={`${PACKAGE.github}/releases`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-brand hover:underline"
+        >
+          GitHub releases
+        </a>
+        .
+      </>,
+      <>
+        Planned, not released: v0.19 — per-call integrity checks, a
+        suspected-rug-pull event, and pin age.
+      </>,
+    ],
+  },
+  {
+    version: "0.2.0 (Python, PyPI)",
+    date: "2026-11-07",
+    href: "releases",
+    title: "Python security features",
+    items: [
+      <>
+        Added: tool definition integrity (SHA-256 hashes and pinning, same
+        hash as JS), opt-in secret leak detection (type and count only),
+        an auth failure counter, and sensitive tool audit events with
+        wildcards. It detects, never blocks.
+      </>,
+    ],
+  },
+  {
+    version: "0.1.0 (Python, PyPI)",
+    date: "2026-10-25",
+    href: "releases",
+    title: "Initial Python release",
+    items: [
+      <>
+        Added: the initial PyPI release of opentel-mcp for the Python{" "}
+        {code("mcp")} SDK (1.25–2.x, Python 3.10–3.14), with the same
+        silent-failure detection and error fingerprints identical to JS
+        (shared conformance fixtures).
+      </>,
+    ],
+  },
   {
     version: "0.10.0",
     date: "2026-08-11",
@@ -593,7 +670,7 @@ export default function ChangelogPage() {
                     {release.title}
                   </span>
                   <span className="ml-auto text-sm font-normal text-text-tertiary">
-                    {formatDate(release.date)}
+                    {release.date ? formatDate(release.date) : null}
                   </span>
                 </h2>
                 <ul className="mt-4 ml-6 list-disc space-y-2 text-muted-foreground">

@@ -1,7 +1,8 @@
 # opentel-mcp
 
-> Node.js OpenTelemetry instrumentation for Model Context Protocol
-> (MCP) tool calls. Detects silent failures (CallToolResult.isError=true
+> OpenTelemetry instrumentation for Model Context Protocol (MCP)
+> servers in Node.js (npm 0.18.1) and Python (PyPI 0.2.0). Also detects
+> tool definition tampering and secret leaks; detects, never blocks. Detects silent failures (CallToolResult.isError=true
 > inside successful JSON-RPC 2.0 responses), attributes LLM cost
 > and token usage per tool call, and groups identical failures
 > with SHA-256-16 fingerprints.
@@ -55,7 +56,7 @@
 - [Comparison](https://opentel-mcp-site.pages.dev/comparison): opentel-mcp vs
   raw @opentelemetry/api vs fastmcp built-in instrumentation.
 - [Changelog](https://opentel-mcp-site.pages.dev/changelog): v0.1.0 through
-  v0.10.0 with commit-linked history.
+  v0.18.1 with commit-linked history.
 - [About](https://opentel-mcp-site.pages.dev/about): The author and the origin
   of the project.
 - [Blog](https://opentel-mcp-site.pages.dev/blog): Deep dive on Deep Failure
