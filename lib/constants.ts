@@ -1,7 +1,7 @@
 export const SITE = {
   name: "opentel-mcp",
-  domain: "opentel-mcp-site.pages.dev",
-  url: "https://opentel-mcp-site.pages.dev",
+  domain: "opentel-mcp.dev",
+  url: "https://opentel-mcp.dev",
   tagline: "Catch MCP silent failures and tool tampering — in Node.js and Python.",
   description:
     "opentel-mcp is OpenTelemetry instrumentation for Model Context Protocol servers in Node.js and Python. It detects silent failures (isError inside a 200 OK), tool definition tampering and secret leaks, and marks spans ERROR. It detects, never blocks.",
